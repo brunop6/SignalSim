@@ -6,6 +6,7 @@ import { TransmitterService } from '../../shared/services/transmitter.service';
 import { Signal } from '../../shared/interfaces/signal.interface';
 import { SignalOutput } from '../../shared/interfaces/signal-output';
 import { SignalTypes } from '../../shared/enums/signal-types.enum';
+import { Modulations } from '../../shared/enums/modulations';
 
 @Component({
   selector: 'app-transmitter',
@@ -15,9 +16,11 @@ import { SignalTypes } from '../../shared/enums/signal-types.enum';
 })
 export class TransmitterComponent {
   signalTypes = Object.values(SignalTypes);
+  modulationModes = Object.values(Modulations);
   form!: FormGroup;
 
-  output?: SignalOutput;
+  baseband?: SignalOutput;
+  output?: SignalOutput; // modulated
 
   constructor(
     private fb: FormBuilder,
@@ -25,8 +28,11 @@ export class TransmitterComponent {
   ) {
     this.form = this.fb.group({
       duration: [200, [Validators.required, Validators.min(0)]], // ms
-      samplingFrequency: [1000, [Validators.required, Validators.min(1)]], // Hz
-      signals: this.fb.array([this.createSignalGroup()])
+      samplingFrequency: [5000, [Validators.required, Validators.min(1)]], // Hz
+      signals: this.fb.array([this.createSignalGroup()]),
+      carrierFrequency: [1000, [Validators.required, Validators.min(1)]],
+      modulationIndex: [0.5, [Validators.required, Validators.min(0), Validators.max(1)]],
+      modulationMode: [Modulations.AM_DSB, Validators.required]
     });
   }
 
@@ -55,6 +61,12 @@ export class TransmitterComponent {
       const f = Number(g.get('frequency')?.value) || 0;
       return Math.max(max, f);
     }, 0);
+  }
+
+  get requiredFsForModulation(): number {
+    // fs >= 2 * (fc + fmax)
+    const fc = Number(this.form.get('carrierFrequency')?.value) || 0;
+    return 2 * (fc + this.maxFrequency);
   }
 
   createSignalGroup(): FormGroup {
@@ -93,6 +105,13 @@ export class TransmitterComponent {
       phase: Number(g.get('phase')?.value)
     }));
 
-    this.output = this.tx.multiplexChannel(signals, dur, fs);
+    // Gera banda-base e guarda
+    this.baseband = this.tx.multiplexChannel(signals, dur, fs);
+
+    // Se um modo de modulação estiver selecionado, gera sinal modulado
+    const fc = Number(this.form.get('carrierFrequency')?.value) || 0;
+    const mi = Number(this.form.get('modulationIndex')?.value) || 0;
+    const mode = this.form.get('modulationMode')?.value as Modulations;
+    this.output = this.tx.modulateAM(this.baseband, fc, mi, mode);
   }
 }

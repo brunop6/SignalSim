@@ -42,17 +42,38 @@
 				<input type="number" step="any" formControlName="samplingFrequency" />
 			</label>
 
+				<label>
+					Portadora fc (Hz)
+					<input type="number" step="any" formControlName="carrierFrequency" />
+				</label>
+
+				<label>
+					Índice m
+					<input type="number" step="any" formControlName="modulationIndex" />
+				</label>
+
+				<label>
+					Modulação AM
+					<select formControlName="modulationMode">
+						<option *ngFor="let m of modulationModes" [value]="m">{{ m }}</option>
+					</select>
+				</label>
+
 			<button type="submit">Gerar</button>
 		</form>
 
-	<div style="font-size: .9rem; margin-top: .25rem;">
-			<span *ngIf="nyquistViolated" style="color:#b91c1c;">
-				Atenção: fs ({{ fs | number:'1.0-2' }}) < 2×fmax ({{ (maxFrequency*2) | number:'1.0-2' }}) — pode ocorrer aliasing.
+		<div style="font-size: .9rem; margin-top: .25rem;">
+			<span *ngIf="fs && (fs < requiredFsForModulation)" style="color:#b91c1c;">
+				Atenção: fs ({{ fs | number:'1.0-2' }}) < 2×(fc+fmax) ({{ requiredFsForModulation | number:'1.0-2' }}) — pode ocorrer aliasing na modulação.
 			</span>
-		<div *ngIf="fs && form.get('duration')?.value">Amostras previstas: <b>{{ expectedSamples }}</b></div>
-	</div>
+			<div *ngIf="fs && form.get('duration')?.value">Amostras previstas: <b>{{ expectedSamples }}</b></div>
+		</div>
 
-	<div class="chart-wrap">
-		<app-signal-chart [data]="output" title="Sinal Gerado"></app-signal-chart>
-	</div>
+		<div class="chart-wrap">
+			<app-signal-chart [data]="baseband" title="Banda-base m(t)"></app-signal-chart>
+		</div>
+
+		<div class="chart-wrap">
+			<app-signal-chart [data]="output" title="Sinal Modulado"></app-signal-chart>
+		</div>
 </div>
