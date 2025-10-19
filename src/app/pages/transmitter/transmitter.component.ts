@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormGroup, FormArray } from '@angular/forms';
 import { SignalChartComponent } from '../../components/signal-chart/signal-chart.component';
 import { TransmitterService } from '../../shared/services/transmitter.service';
 import { Signal } from '../../shared/interfaces/signal.interface';
@@ -24,26 +24,20 @@ export class TransmitterComponent {
     private tx: TransmitterService
   ) {
     this.form = this.fb.group({
-      type: [SignalTypes.SINE, Validators.required],
-      amplitude: [1, [Validators.required, Validators.min(0)]],
-      frequency: [10, [Validators.required, Validators.min(1)]], // Hz
-      phase: [0], // radianos
       duration: [200, [Validators.required, Validators.min(0)]], // ms
       samplingFrequency: [1000, [Validators.required, Validators.min(1)]], // Hz
+      signals: this.fb.array([this.createSignalGroup()])
     });
   }
 
   // Helpers para UI
-  get f(): number {
-    return Number(this.form?.get('frequency')?.value) || 0;
-  }
-
   get fs(): number {
     return Number(this.form?.get('samplingFrequency')?.value) || 0;
   }
 
   get nyquistViolated(): boolean {
-    return this.fs < 2 * this.f;
+    const maxF = this.maxFrequency;
+    return maxF > 0 && this.fs < 2 * maxF;
   }
 
   get expectedSamples(): number {
@@ -52,28 +46,53 @@ export class TransmitterComponent {
     return Math.max(0, Math.round(duration * fs));
   }
 
+  get signalsForm(): FormArray<FormGroup> {
+    return this.form.get('signals') as FormArray<FormGroup>;
+  }
+
+  get maxFrequency(): number {
+    return this.signalsForm.controls.reduce((max, g) => {
+      const f = Number(g.get('frequency')?.value) || 0;
+      return Math.max(max, f);
+    }, 0);
+  }
+
+  createSignalGroup(): FormGroup {
+    return this.fb.group({
+      type: [SignalTypes.SINE, Validators.required],
+      amplitude: [1, [Validators.required, Validators.min(0)]],
+      frequency: [10, [Validators.required, Validators.min(0)]],
+      phase: [0]
+    });
+  }
+
+  addSignal(): void {
+    this.signalsForm.push(this.createSignalGroup());
+  }
+
+  removeSignal(index: number): void {
+    if (this.signalsForm.length > 1) {
+      this.signalsForm.removeAt(index);
+    }
+  }
+
   generate(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
-    const { type, amplitude, frequency, phase, duration, samplingFrequency } = this.form.getRawValue();
-
-    // Segurança de tipos para o TS
-    const amp = Number(amplitude);
-    const f = Number(frequency);
-    const ph = Number(phase);
-    const dur = Number(duration) / 1000;
+    const { duration, samplingFrequency } = this.form.getRawValue();
+    const dur = Number(duration) / 1000; // ms -> s
     const fs = Number(samplingFrequency);
 
-    const signal: Signal = {
-      type: type as SignalTypes,
-      amplitude: amp,
-      frequency: f,
-      phase: ph,
-    };
+    const signals: Signal[] = this.signalsForm.controls.map(g => ({
+      type: g.get('type')?.value as SignalTypes,
+      amplitude: Number(g.get('amplitude')?.value),
+      frequency: Number(g.get('frequency')?.value),
+      phase: Number(g.get('phase')?.value)
+    }));
 
-    this.output = this.tx.generateSignal(signal, dur, fs);
+    this.output = this.tx.multiplexChannel(signals, dur, fs);
   }
 }
