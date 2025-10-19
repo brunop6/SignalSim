@@ -42,6 +42,28 @@
 				<input type="number" step="any" formControlName="samplingFrequency" />
 			</label>
 
+			<div class="row-controls" style="grid-column: 1 / -1; border-top: 1px solid #e5e7eb; padding-top: .5rem; margin-top: .5rem;">
+				<label style="display:flex; align-items:center; gap:.5rem;">
+					<input type="checkbox" formControlName="filterEnabled" />
+					Aplicar filtro passa-faixa em s(t)
+				</label>
+			</div>
+
+			<div class="signal-row" *ngIf="form.get('filterEnabled')?.value">
+				<label>
+					f Low (Hz)
+					<input type="number" step="any" formControlName="filterLow" />
+				</label>
+				<label>
+					f High (Hz)
+					<input type="number" step="any" formControlName="filterHigh" />
+				</label>
+				<label>
+					Ordem FIR (ímpar)
+					<input type="number" step="1" formControlName="filterOrder" />
+				</label>
+			</div>
+
 				<label>
 					Portadora fc (Hz)
 					<input type="number" step="any" formControlName="carrierFrequency" />
@@ -66,11 +88,22 @@
 			<span *ngIf="fs && (fs < requiredFsForModulation)" style="color:#b91c1c;">
 				Atenção: fs ({{ fs | number:'1.0-2' }}) < 2×(fc+fmax) ({{ requiredFsForModulation | number:'1.0-2' }}) — pode ocorrer aliasing na modulação.
 			</span>
+			<span *ngIf="form.get('filterEnabled')?.value && filterNyquistViolated" style="color:#b91c1c; display:block;">
+				Atenção: fHigh ({{ filterHigh | number:'1.0-2' }}) ≥ fs/2 ({{ (fs/2) | number:'1.0-2' }}) — ajuste a banda do filtro.
+			</span>
 			<div *ngIf="fs && form.get('duration')?.value">Amostras previstas: <b>{{ expectedSamples }}</b></div>
 		</div>
 
 		<div class="chart-wrap">
 			<app-signal-chart [data]="baseband" title="Banda-base m(t)"></app-signal-chart>
+		</div>
+
+		<div class="chart-wrap" *ngIf="filtered">
+			<app-signal-chart [data]="filtered" title="Banda-base Filtrada (Passa-Faixa)"></app-signal-chart>
+		</div>
+
+		<div class="chart-wrap" *ngIf="filterEnabled && freqResponse">
+			<app-signal-chart [data]="freqResponse" [type]="'frequency-response'" title="Resposta em Frequência do Filtro (|H(f)|)"></app-signal-chart>
 		</div>
 
 		<div class="chart-wrap">

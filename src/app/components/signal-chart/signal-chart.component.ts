@@ -2,6 +2,7 @@ import { Component, Input, ViewChild, ElementRef, AfterViewInit, OnChanges, Simp
 import { CommonModule } from '@angular/common';
 import { SignalOutput } from '../../shared/interfaces/signal-output';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
+import { LiteralArray } from '@angular/compiler';
 
 Chart.register(...registerables);
 
@@ -14,6 +15,7 @@ Chart.register(...registerables);
 export class SignalChartComponent implements AfterViewInit, OnChanges {
   @Input() data?: SignalOutput;
   @Input() title = 'Signal';
+  @Input() type: 'signal' | 'frequency-response' | 'spectrum' = 'signal';
 
   @ViewChild('canvas') canvasRef?: ElementRef<HTMLCanvasElement>;
 
@@ -70,14 +72,16 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
         scales: {
           x: {
             type: 'linear',
-            title: { display: true, text: 'Time (s)' },
+            title: { 
+              display: true, 
+              text: this.type=='frequency-response' ? 'Frequency (Hz)' : 'Time (s)' },
             ticks: { maxTicksLimit: 10 },
           },
           y: {
             title: { display: true, text: 'Amplitude' },
             ticks: { maxTicksLimit: 6 },
-            suggestedMin: -5,
-            suggestedMax: 5
+            suggestedMin: this.type=='frequency-response' ? -1 : -5,
+            suggestedMax: this.type=='frequency-response' ? 1 : 5
           }
         },
         plugins: {
