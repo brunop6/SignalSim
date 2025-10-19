@@ -1,0 +1,10 @@
+<div class="chart-container">
+  <canvas #canvas></canvas>
+  <div class="placeholder" *ngIf="!data || data.data?.length === 0">
+    Sem dados para exibir o gráfico.
+  </div>
+
+  <div *ngIf="data" style="margin-top: .5rem; font-size: .9rem; color: #374151;">
+    Nº de Amostras: <b>{{ data?.data?.length }}</b>
+  </div>
+</div>
