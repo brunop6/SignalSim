@@ -57,8 +57,8 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
           {
             label: this.title,
             data: output.data,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59,130,246,0.15)',
+            borderColor: '#00C9A7',
+            backgroundColor: 'rgba(0,201,167,0.15)',
             fill: true,
             pointRadius: 0,
             borderWidth: 1.5,

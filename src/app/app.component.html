@@ -1,1 +1,17 @@
-<router-outlet />
+<div class="app-container">
+  <nav class="main-nav">
+    <div class="nav-brand">
+      <img src="logo-ss.png" alt="SignalSim Logo" class="nav-logo"/>
+      <h1>SignalSim</h1>
+    </div>
+
+    <div class="nav-links">
+      <a routerLink="/transmitter" routerLinkActive="active">Transmissores</a>
+      <a routerLink="/receiver" routerLinkActive="active">Receptores</a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <router-outlet />
+  </main>
+</div>

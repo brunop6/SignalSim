@@ -9,5 +9,9 @@ export const routes: Routes = [
   {
     path: 'transmitter',
     loadComponent: () => import('./pages/transmitter/transmitter.component').then(m => m.TransmitterComponent)
+  },
+  {
+    path: 'receiver',
+    loadComponent: () => import('./pages/receiver/receiver.component').then(m => m.ReceiverComponent)
   }
 ];

@@ -1,10 +1,10 @@
-
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup, FormArray } from '@angular/forms';
 import { SignalChartComponent } from '../../components/signal-chart/signal-chart.component';
 import { TransmitterService } from '../../shared/services/transmitter.service';
 import { FilterService } from '../../shared/services/filter.service';
+import { FourierTransformService } from '../../shared/services/fourier-transform.service';
 import { Signal } from '../../shared/interfaces/signal.interface';
 import { SignalOutput } from '../../shared/interfaces/signal-output';
 import { SignalTypes } from '../../shared/enums/signal-types.enum';
@@ -18,36 +18,8 @@ import { Modulations } from '../../shared/enums/modulations';
 })
 export class TransmitterComponent {
   freqResponse?: SignalOutput;
-  // Atualiza resposta em frequência do filtro FIR
-  updateFreqResponse(): void {
-    if (!this.filterEnabled || this.fs <= 0) {
-      this.freqResponse = undefined;
-      return;
-    }
-    const N = this.filterOrder;
-    const fs = this.fs;
-    const fLow = this.filterLow;
-    const fHigh = this.filterHigh;
-    // Obtem coeficientes FIR
-    // @ts-ignore: acesso ao método privado
-    const h: Float64Array = (this.filter as any).designBandPassFir(N, fs, fLow, fHigh);
-    // Frequências de 0 até fs/2
-    const nFreqs = 256;
-    const data: {x:number, y:number}[] = [];
-    for (let i = 0; i < nFreqs; i++) {
-      const f = i * (fs/2) / (nFreqs-1);
-      // DTFT: H(f) = sum h[n] * exp(-j*2*pi*f*n/fs)
-      let Re = 0, Im = 0;
-      for (let n = 0; n < h.length; n++) {
-        const theta = -2 * Math.PI * f * (n - (N-1)/2) / fs;
-        Re += h[n] * Math.cos(theta);
-        Im += h[n] * Math.sin(theta);
-      }
-      const mag = Math.sqrt(Re*Re + Im*Im);
-      data.push({ x: f, y: mag });
-    }
-    this.freqResponse = { data };
-  }
+  showQrCode = false;
+  transmitterUrl = '';
   signalTypes = Object.values(SignalTypes);
   modulationModes = Object.values(Modulations);
   form!: FormGroup;
@@ -56,11 +28,16 @@ export class TransmitterComponent {
   output?: SignalOutput; // modulated
   filtered?: SignalOutput; // filtered modulated
 
+  filterEnabled = false;
+
   constructor(
     private fb: FormBuilder,
     private tx: TransmitterService,
-    private filter: FilterService
+    private filter: FilterService,
+    private fourier: FourierTransformService
   ) {
+    this.transmitterUrl = window.location.origin + '/receiver?tx=' + this.generateTransmitterId();
+    
     this.form = this.fb.group({
       duration: [200, [Validators.required, Validators.min(0)]], // ms
       samplingFrequency: [5000, [Validators.required, Validators.min(1)]], // Hz
@@ -68,8 +45,6 @@ export class TransmitterComponent {
       carrierFrequency: [1000, [Validators.required, Validators.min(1)]],
       modulationIndex: [0.5, [Validators.required, Validators.min(0), Validators.max(1)]],
       modulationMode: [Modulations.AM_DSB, Validators.required],
-      // Filtro passa-faixa (aplicado no sinal modulado)
-      filterEnabled: [false],
       filterLow: [0, [Validators.min(0)]],
       filterHigh: [2000, [Validators.min(0)]],
       filterOrder: [101, [Validators.min(3)]]
@@ -109,10 +84,6 @@ export class TransmitterComponent {
     return 2 * (fc + this.maxFrequency);
   }
 
-  get filterEnabled(): boolean {
-    return !!this.form.get('filterEnabled')?.value;
-  }
-
   get filterLow(): number {
     return Number(this.form.get('filterLow')?.value) || 0;
   }
@@ -148,29 +119,22 @@ export class TransmitterComponent {
     }
   }
 
+  filterOnOff(): void {
+    this.filterEnabled = !this.filterEnabled;
+    console.log('Filter enabled:', this.filterEnabled);
+  }
+
   generate(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
-    const { duration, samplingFrequency } = this.form.getRawValue();
-    const dur = Number(duration) / 1000; // ms -> s
-    const fs = Number(samplingFrequency);
-
-    const signals: Signal[] = this.signalsForm.controls.map(g => ({
-      type: g.get('type')?.value as SignalTypes,
-      amplitude: Number(g.get('amplitude')?.value),
-      frequency: Number(g.get('frequency')?.value),
-      phase: Number(g.get('phase')?.value)
-    }));
-
-    // Gera banda-base e guarda
-    this.baseband = this.tx.multiplexChannel(signals, dur, fs);
+    this.generateBaseband();
 
     // Aplica filtro passa-faixa na banda-base, se habilitado
     if (this.filterEnabled && this.baseband?.data?.length) {
-      this.filtered = this.filter.bandPass(this.baseband, this.filterLow, this.filterHigh, fs, this.filterOrder);
+      this.filtered = this.filter.bandPass(this.baseband, this.filterLow, this.filterHigh, this.fs, this.filterOrder);
     } else {
       this.filtered = undefined;
     }
@@ -183,6 +147,85 @@ export class TransmitterComponent {
     const mode = this.form.get('modulationMode')?.value as Modulations;
     // Modula a banda-base filtrada se houver, senão a original
     const baseForMod = this.filtered ?? this.baseband;
+    if (baseForMod) {
+      this.output = this.tx.modulateAM(baseForMod, fc, mi, mode);
+    }
+  }
+
+  private generateBaseband(): void {
+    const { duration, samplingFrequency } = this.form.getRawValue();
+    const dur = Number(duration) / 1000; // ms -> s
+    const fs = Number(samplingFrequency);
+    const signals: Signal[] = this.signalsForm.controls.map(g => ({
+      type: g.get('type')?.value as SignalTypes,
+      amplitude: Number(g.get('amplitude')?.value),
+      frequency: Number(g.get('frequency')?.value),
+      phase: Number(g.get('phase')?.value) * Math.PI / 180 // Converte graus para radianos
+    }));
+    // Gera banda-base e guarda
+    this.baseband = this.tx.multiplexChannel(signals, dur, fs);
+  }
+
+  private generateTransmitterId(): string {
+    return Math.random().toString(36).substring(2, 10);
+  }
+
+  // 1.1) Gerar Sinal (banda-base)
+  generateSignal(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.generateBaseband();
+    // Limpa filtrado e modulado
+    this.filtered = undefined;
+    this.output = undefined;
+    this.freqResponse = undefined;
+  }
+
+  // 2) Gerar Filtro e aplicar na banda-base
+  generateFilter(): void {
+    if (!this.baseband || !this.baseband.data?.length || !this.filterEnabled) {
+      this.filtered = undefined;
+      this.freqResponse = undefined;
+      return;
+    }
+    const fs = this.fs;
+    this.filtered = this.filter.bandPass(this.baseband, this.filterLow, this.filterHigh, fs, this.filterOrder);
+    this.updateFreqResponse();
+    // Limpa modulado
+    this.output = undefined;
+  }
+
+  // 3) Aplicar modulação
+  generateModulation(): void {
+    // Modula a banda-base filtrada se houver, senão a original
+    const baseForMod = this.filtered ?? this.baseband;
+    if (!baseForMod) {
+      this.output = undefined;
+      return;
+    }
+    const fc = Number(this.form.get('carrierFrequency')?.value) || 0;
+    const mi = Number(this.form.get('modulationIndex')?.value) || 0;
+    const mode = this.form.get('modulationMode')?.value as Modulations;
     this.output = this.tx.modulateAM(baseForMod, fc, mi, mode);
+  }
+
+  // Atualiza resposta em frequência do filtro FIR
+  updateFreqResponse(): void {
+    if (!this.filterEnabled || this.fs <= 0) {
+      this.freqResponse = undefined;
+      return;
+    }
+    const N = this.filterOrder;
+    const fs = this.fs;
+    const fLow = this.filterLow;
+    const fHigh = this.filterHigh;
+    
+    // Obtém coeficientes FIR do FilterService
+    const h: Float64Array = this.filter.designBandPassFir(N, fs, fLow, fHigh);
+    
+    // Calcula resposta em frequência usando FourierTransformService
+    this.freqResponse = this.fourier.computeFrequencyResponse(h, fs, 256);
   }
 }

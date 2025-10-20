@@ -73,7 +73,7 @@ export class FilterService {
    * Projeta um FIR passa-faixa via (LP fHigh - LP fLow) com janela de Hamming
    * - order deve ser ímpar
    */
-  private designBandPassFir(order: number, fs: number, fLow: number, fHigh: number): Float64Array {
+  designBandPassFir(order: number, fs: number, fLow: number, fHigh: number): Float64Array {
     const N = order;
     const M = (N - 1) / 2; // centro
     const fc1 = fLow / fs;  // normalizado (ciclos/amostra)

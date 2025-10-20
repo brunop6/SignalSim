@@ -1,29 +1,46 @@
 <div class="tx-page">
-		<form [formGroup]="form" (ngSubmit)="generate()" class="form-grid">
+	<div class="page-header">
+		<h2>Transmissor</h2>
+		<button type="button" class="qr-btn" (click)="showQrCode = !showQrCode">
+			{{ showQrCode ? 'Fechar QR Code' : 'Conectar Receptor (QR Code)' }}
+		</button>
+	</div>
+
+	<div class="qr-modal" *ngIf="showQrCode">
+		<div class="qr-content">
+			<h3>Escaneie para conectar um receptor</h3>
+			<div class="qr-placeholder">
+				<p>QR Code será gerado aqui</p>
+				<small>URL: {{ transmitterUrl }}</small>
+			</div>
+			<button type="button" (click)="showQrCode = false">Fechar</button>
+		</div>
+	</div>
+
+	<!-- 1) Sinal -->
+	<details open class="nb-section">
+		<summary class="nb-heading"><b>1) Sinal</b></summary>
+		<form [formGroup]="form" class="form-grid nb-form" (ngSubmit)="$event.preventDefault()">
 			<ng-container formArrayName="signals">
-				<div *ngFor="let sg of signalsForm.controls; let i = index" [formGroupName]="i" class="signal-row">
+				<div *ngFor="let sg of signalsForm.controls; let i = index" [formGroupName]="i" class="signal-column">
 					<label>
 						Tipo
 						<select formControlName="type">
 							<option *ngFor="let type of signalTypes" [value]="type">{{ type }}</option>
 						</select>
 					</label>
-
 					<label>
 						Amplitude
 						<input type="number" step="any" formControlName="amplitude" />
 					</label>
-
 					<label>
 						f (Hz)
 						<input type="number" step="any" formControlName="frequency" />
 					</label>
-
 					<label>
-						Fase (rad)
+						Fase (°)
 						<input type="number" step="any" formControlName="phase" />
 					</label>
-
 					<button type="button" (click)="removeSignal(i)" [disabled]="signalsForm.length === 1">Remover</button>
 				</div>
 			</ng-container>
@@ -31,82 +48,123 @@
 			<div class="row-controls">
 				<button type="button" (click)="addSignal()">Adicionar sinal</button>
 			</div>
+		</form>
 
-			<label>
-				Duração (ms)
-				<input type="number" step="any" formControlName="duration" />
-			</label>
-
-			<label>
-				Freq. de Amostragem (Hz)
-				<input type="number" step="any" formControlName="samplingFrequency" />
-			</label>
-
-			<div class="row-controls" style="grid-column: 1 / -1; border-top: 1px solid #e5e7eb; padding-top: .5rem; margin-top: .5rem;">
-				<label style="display:flex; align-items:center; gap:.5rem;">
-					<input type="checkbox" formControlName="filterEnabled" />
-					Aplicar filtro passa-faixa em s(t)
+		<!-- 1.1) Visualização -->
+		<details open class="nb-section">
+			<summary class="nb-heading"><b>1.1) Visualização</b></summary>
+			<form [formGroup]="form" class="form-grid nb-form" (ngSubmit)="generateSignal()">
+				<label>
+					Duração (ms)
+					<input type="number" step="any" formControlName="duration" />
 				</label>
+				<label>
+					Freq. de Amostragem (Hz)
+					<input type="number" step="any" formControlName="samplingFrequency" />
+				</label>
+				<button type="submit">Gerar Sinal</button>
+			</form>
+			<div class="info-block">
+				<span *ngIf="fs && (fs < requiredFsForModulation)" class="warn-text">
+					Atenção: fs ({{ fs | number:'1.0-2' }}) < 2×(fc+fmax) ({{ requiredFsForModulation | number:'1.0-2' }}) — pode
+						ocorrer aliasing na modulação. </span>
+						<div *ngIf="fs && form.get('duration')?.value">Amostras previstas: <b>{{ expectedSamples }}</b></div>
 			</div>
+		</details>
 
-			<div class="signal-row" *ngIf="form.get('filterEnabled')?.value">
+		<!-- 1.2) Gráfico do Sinal -->
+		<details open class="nb-section">
+			<summary class="nb-heading"><b>1.2) Gráfico do Sinal</b></summary>
+			<div class="chart-wrap">
+				<app-signal-chart [data]="baseband" title="Banda-base m(t)"></app-signal-chart>
+			</div>
+		</details>
+	</details>
+
+	<!-- 2) Filtro -->
+	<details class="nb-section" >
+		<summary class="nb-heading" (click)="filterOnOff()">
+			<b>
+				2) Filtro:
+				@if (filterEnabled) {
+					<span class="status-on">
+						Ativado
+					</span>
+				} @else {
+					<span class="status-off">
+						Desligado
+					</span>
+				}
+			</b>
+		</summary>
+		<form [formGroup]="form" class="form-grid nb-form" (ngSubmit)="generateFilter()">
+			<div class="signal-row">
 				<label>
 					f Low (Hz)
-					<input type="number" step="any" formControlName="filterLow" />
+					<input type="number" step="10" formControlName="filterLow" />
 				</label>
 				<label>
 					f High (Hz)
-					<input type="number" step="any" formControlName="filterHigh" />
+					<input type="number" step="10" formControlName="filterHigh" />
 				</label>
 				<label>
 					Ordem FIR (ímpar)
-					<input type="number" step="1" formControlName="filterOrder" />
+					<input type="number" step="10" formControlName="filterOrder" />
 				</label>
+				<button type="submit">Gerar Filtro</button>
 			</div>
 
-				<label>
-					Portadora fc (Hz)
-					<input type="number" step="any" formControlName="carrierFrequency" />
-				</label>
-
-				<label>
-					Índice m
-					<input type="number" step="any" formControlName="modulationIndex" />
-				</label>
-
-				<label>
-					Modulação AM
-					<select formControlName="modulationMode">
-						<option *ngFor="let m of modulationModes" [value]="m">{{ m }}</option>
-					</select>
-				</label>
-
-			<button type="submit">Gerar</button>
 		</form>
 
-		<div style="font-size: .9rem; margin-top: .25rem;">
-			<span *ngIf="fs && (fs < requiredFsForModulation)" style="color:#b91c1c;">
-				Atenção: fs ({{ fs | number:'1.0-2' }}) < 2×(fc+fmax) ({{ requiredFsForModulation | number:'1.0-2' }}) — pode ocorrer aliasing na modulação.
-			</span>
-			<span *ngIf="form.get('filterEnabled')?.value && filterNyquistViolated" style="color:#b91c1c; display:block;">
-				Atenção: fHigh ({{ filterHigh | number:'1.0-2' }}) ≥ fs/2 ({{ (fs/2) | number:'1.0-2' }}) — ajuste a banda do filtro.
-			</span>
-			<div *ngIf="fs && form.get('duration')?.value">Amostras previstas: <b>{{ expectedSamples }}</b></div>
-		</div>
+		<span *ngIf="filterEnabled && filterNyquistViolated" class="warn-text">
+			Atenção: fHigh ({{ filterHigh | number:'1.0-2' }}) ≥ fs/2 ({{ (fs/2) | number:'1.0-2' }}) — ajuste a banda do
+			filtro.
+		</span>
 
-		<div class="chart-wrap">
-			<app-signal-chart [data]="baseband" title="Banda-base m(t)"></app-signal-chart>
-		</div>
+		<!-- 2.1) Gráfico de Resposta em Frequência do Filtro -->
+		<details open class="nb-section">
+			<summary class="nb-heading"><b>2.1) Gráfico de Resposta em Frequência do Filtro</b></summary>
+			<div class="chart-wrap" *ngIf="filterEnabled && freqResponse">
+				<app-signal-chart [data]="freqResponse" [type]="'frequency-response'"
+					title="Resposta em Frequência do Filtro (|H(f)|)"></app-signal-chart>
+			</div>
+		</details>
 
-		<div class="chart-wrap" *ngIf="filtered">
-			<app-signal-chart [data]="filtered" title="Banda-base Filtrada (Passa-Faixa)"></app-signal-chart>
-		</div>
+		<!-- 2.2) Gráfico do Sinal Banda Base Filtrado -->
+		<details class="nb-section">
+			<summary class="nb-heading"><b>2.2) Gráfico do Sinal Banda Base Filtrado</b></summary>
+			<div class="chart-wrap" *ngIf="filtered">
+				<app-signal-chart [data]="filtered" title="Banda-base Filtrada (Passa-Faixa)"></app-signal-chart>
+			</div>
+		</details>
+	</details>
 
-		<div class="chart-wrap" *ngIf="filterEnabled && freqResponse">
-			<app-signal-chart [data]="freqResponse" [type]="'frequency-response'" title="Resposta em Frequência do Filtro (|H(f)|)"></app-signal-chart>
-		</div>
+	<!-- 3) Modulação -->
+	<details class="nb-section">
+		<summary class="nb-heading"><b>3) Modulação</b></summary>
+		<form [formGroup]="form" class="form-grid nb-form" (ngSubmit)="generateModulation()">
+			<label>
+				Portadora fc (Hz)
+				<input type="number" step="10" formControlName="carrierFrequency" />
+			</label>
+			<label>
+				Índice m
+				<input type="number" step="0.1" formControlName="modulationIndex" />
+			</label>
+			<label>
+				Modulação AM
+				<select formControlName="modulationMode">
+					<option *ngFor="let m of modulationModes" [value]="m">{{ m }}</option>
+				</select>
+			</label>
+			<button type="submit">Aplicar</button>
+		</form>
 
-		<div class="chart-wrap">
-			<app-signal-chart [data]="output" title="Sinal Modulado"></app-signal-chart>
-		</div>
-</div>
+		<!-- 3.1) Gráfico do Sinal Modulado -->
+		<details class="nb-section">
+			<summary class="nb-heading"><b>3.1) Gráfico do Sinal Modulado</b></summary>
+			<div class="chart-wrap">
+				<app-signal-chart [data]="output" title="Sinal Modulado"></app-signal-chart>
+			</div>
+		</details>
+	</details>

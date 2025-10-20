@@ -1,0 +1,72 @@
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  
+  .main-nav {
+    background: var(--dark-bg-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding: 1rem 2rem 0.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    position: fixed;
+    width: 100dvw;
+    z-index: 100;
+  
+    .nav-brand {
+      display: flex;
+      flex-direction: row;
+      align-items: center; 
+      gap: 0.5rem;
+
+      img {
+        width: 50px;
+      }
+      
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+    }
+  
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+  
+      a {
+        text-decoration: none;
+        color: var(--font-color);
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid transparent;
+  
+        &:hover {
+          border-color: var(--primary-color);
+          background: rgba(0, 201, 167, 0.1);
+        }
+  
+        &.active {
+          border-color: var(--primary-color);
+          background: var(--primary-color);
+          color: var(--dark-bg-color);
+          font-weight: 600;
+        }
+      }
+    }
+  }
+  
+  .main-content {
+    flex: 1;
+    padding: 80px 2rem 2rem 2rem;
+    overflow-y: auto;
+  }
+}
+
