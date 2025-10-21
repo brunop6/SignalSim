@@ -82,18 +82,18 @@
 	</details>
 
 	<!-- 2) Filtro -->
-	<details class="nb-section" >
+	<details class="nb-section">
 		<summary class="nb-heading" (click)="filterOnOff()">
 			<b>
 				2) Filtro:
 				@if (filterEnabled) {
-					<span class="status-on">
-						Ativado
-					</span>
+				<span class="status-on">
+					Ativado
+				</span>
 				} @else {
-					<span class="status-off">
-						Desligado
-					</span>
+				<span class="status-off">
+					Desligado
+				</span>
 				}
 			</b>
 		</summary>
@@ -124,8 +124,19 @@
 		<!-- 2.1) Gráfico de Resposta em Frequência do Filtro -->
 		<details open class="nb-section">
 			<summary class="nb-heading"><b>2.1) Gráfico de Resposta em Frequência do Filtro</b></summary>
+			<form [formGroup]="form" class="form-grid nb-form" (ngSubmit)="$event.preventDefault()">
+				<label>
+					Frequência máxima (Hz)
+					<input type="number" step="any" formControlName="freqRespMax" />
+				</label>
+				<div class="info-block">
+					<span *ngIf="freqRespMaxExceeded" class="warn-text">
+						Atenção: frequência solicitada > fs/2 ({{ (fs/2) | number:'1.0-2' }}). Limitando em fs/2.
+					</span>
+				</div>
+			</form>
 			<div class="chart-wrap" *ngIf="filterEnabled && freqResponse">
-				<app-signal-chart [data]="freqResponse" [type]="'frequency-response'"
+				<app-signal-chart [data]="freqResponse" [type]="'frequency-response'" [xMax]="clampedFreqRespMax"
 					title="Resposta em Frequência do Filtro (|H(f)|)"></app-signal-chart>
 			</div>
 		</details>
@@ -152,7 +163,7 @@
 				<input type="number" step="0.1" formControlName="modulationIndex" />
 			</label>
 			<label>
-				Modulação AM
+				Modulação
 				<select formControlName="modulationMode">
 					<option *ngFor="let m of modulationModes" [value]="m">{{ m }}</option>
 				</select>
@@ -161,10 +172,31 @@
 		</form>
 
 		<!-- 3.1) Gráfico do Sinal Modulado -->
-		<details class="nb-section">
+		<details open class="nb-section">
 			<summary class="nb-heading"><b>3.1) Gráfico do Sinal Modulado</b></summary>
 			<div class="chart-wrap">
-				<app-signal-chart [data]="output" title="Sinal Modulado"></app-signal-chart>
+				<app-signal-chart [data]="output" [modulator]="filterEnabled && filtered?.data?.length ? filtered : baseband"
+					title="Sinal Modulado"></app-signal-chart>
+			</div>
+		</details>
+
+		<!-- 3.2) Espectro do Sinal -->
+		<details class="nb-section">
+			<summary class="nb-heading"><b>3.2) Espectro do Sinal</b></summary>
+			<form [formGroup]="form" class="form-grid nb-form" (ngSubmit)="$event.preventDefault()">
+				<label>
+					Frequência máxima (Hz)
+					<input type="number" step="any" formControlName="spectrumMax" />
+				</label>
+				<div class="info-block">
+					<span *ngIf="spectrumMaxExceeded" class="warn-text">
+						Atenção: frequência solicitada > fs/2 ({{ (fs/2) | number:'1.0-2' }}). Limitando em fs/2.
+					</span>
+				</div>
+			</form>
+			<div class="chart-wrap" *ngIf="spectrum">
+				<app-signal-chart [data]="spectrum" [type]="'spectrum'" [xMax]="clampedSpectrumMax"
+					title="Espectro de Magnitude"></app-signal-chart>
 			</div>
 		</details>
 	</details>

@@ -1,12 +1,16 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup, FormArray } from '@angular/forms';
+
 import { SignalChartComponent } from '../../components/signal-chart/signal-chart.component';
+
 import { TransmitterService } from '../../shared/services/transmitter.service';
 import { FilterService } from '../../shared/services/filter.service';
 import { FourierTransformService } from '../../shared/services/fourier-transform.service';
+
 import { Signal } from '../../shared/interfaces/signal.interface';
 import { SignalOutput } from '../../shared/interfaces/signal-output';
+
 import { SignalTypes } from '../../shared/enums/signal-types.enum';
 import { Modulations } from '../../shared/enums/modulations';
 
@@ -17,16 +21,18 @@ import { Modulations } from '../../shared/enums/modulations';
   styleUrl: './transmitter.component.scss'
 })
 export class TransmitterComponent {
-  freqResponse?: SignalOutput;
+  form!: FormGroup;
   showQrCode = false;
   transmitterUrl = '';
+
   signalTypes = Object.values(SignalTypes);
   modulationModes = Object.values(Modulations);
-  form!: FormGroup;
-
+  
   baseband?: SignalOutput;
-  output?: SignalOutput; // modulated
+  freqResponse?: SignalOutput;
   filtered?: SignalOutput; // filtered modulated
+  output?: SignalOutput; // modulated
+  spectrum?: SignalOutput; // spectrum of modulated signal
 
   filterEnabled = false;
 
@@ -47,7 +53,10 @@ export class TransmitterComponent {
       modulationMode: [Modulations.AM_DSB, Validators.required],
       filterLow: [0, [Validators.min(0)]],
       filterHigh: [2000, [Validators.min(0)]],
-      filterOrder: [101, [Validators.min(3)]]
+      filterOrder: [101, [Validators.min(3)]],
+      // Max frequency for plots (default fs/2)
+      freqRespMax: [null],
+      spectrumMax: [null]
     });
   }
 
@@ -100,6 +109,28 @@ export class TransmitterComponent {
     return this.filterHigh >= this.fs / 2 - 1e-9;
   }
 
+  // X-axis max controls for plots
+  get requestedFreqRespMax(): number {
+    const v = this.form.get('freqRespMax')?.value;
+    return v == null || v === '' ? this.fs / 2 : Number(v);
+  }
+  get requestedSpectrumMax(): number {
+    const v = this.form.get('spectrumMax')?.value;
+    return v == null || v === '' ? this.fs / 2 : Number(v);
+  }
+  get clampedFreqRespMax(): number {
+    return Math.min(this.requestedFreqRespMax, this.fs / 2);
+  }
+  get clampedSpectrumMax(): number {
+    return Math.min(this.requestedSpectrumMax, this.fs / 2);
+  }
+  get freqRespMaxExceeded(): boolean {
+    return this.requestedFreqRespMax > this.fs / 2 + 1e-9;
+  }
+  get spectrumMaxExceeded(): boolean {
+    return this.requestedSpectrumMax > this.fs / 2 + 1e-9;
+  }
+
   createSignalGroup(): FormGroup {
     return this.fb.group({
       type: [SignalTypes.SINE, Validators.required],
@@ -143,12 +174,13 @@ export class TransmitterComponent {
 
     // Se um modo de modulação estiver selecionado, gera sinal modulado
     const fc = Number(this.form.get('carrierFrequency')?.value) || 0;
+    const fs = Number(this.form.get('samplingFrequency')?.value) || 0;
     const mi = Number(this.form.get('modulationIndex')?.value) || 0;
     const mode = this.form.get('modulationMode')?.value as Modulations;
     // Modula a banda-base filtrada se houver, senão a original
     const baseForMod = this.filtered ?? this.baseband;
     if (baseForMod) {
-      this.output = this.tx.modulateAM(baseForMod, fc, mi, mode);
+      this.output = this.tx.modulateSignal(baseForMod, fc, fs, mi, mode);
     }
   }
 
@@ -163,7 +195,7 @@ export class TransmitterComponent {
       phase: Number(g.get('phase')?.value) * Math.PI / 180 // Converte graus para radianos
     }));
     // Gera banda-base e guarda
-    this.baseband = this.tx.multiplexChannel(signals, dur, fs);
+    this.baseband = this.tx.createSignal(signals, dur, fs);
   }
 
   private generateTransmitterId(): string {
@@ -172,14 +204,11 @@ export class TransmitterComponent {
 
   // 1.1) Gerar Sinal (banda-base)
   generateSignal(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
     this.generateBaseband();
     // Limpa filtrado e modulado
     this.filtered = undefined;
     this.output = undefined;
+    this.spectrum = undefined;
     this.freqResponse = undefined;
   }
 
@@ -193,8 +222,9 @@ export class TransmitterComponent {
     const fs = this.fs;
     this.filtered = this.filter.bandPass(this.baseband, this.filterLow, this.filterHigh, fs, this.filterOrder);
     this.updateFreqResponse();
-    // Limpa modulado
+    // Limpa modulado e espectro
     this.output = undefined;
+    this.spectrum = undefined;
   }
 
   // 3) Aplicar modulação
@@ -203,12 +233,19 @@ export class TransmitterComponent {
     const baseForMod = this.filtered ?? this.baseband;
     if (!baseForMod) {
       this.output = undefined;
+      this.spectrum = undefined;
       return;
     }
     const fc = Number(this.form.get('carrierFrequency')?.value) || 0;
+    const fs = Number(this.form.get('samplingFrequency')?.value) || 0;
     const mi = Number(this.form.get('modulationIndex')?.value) || 0;
     const mode = this.form.get('modulationMode')?.value as Modulations;
-    this.output = this.tx.modulateAM(baseForMod, fc, mi, mode);
+    this.output = this.tx.modulateSignal(baseForMod, fc, fs, mi, mode);
+    
+    // Calcular espectro do sinal modulado
+    if (this.output) {
+      this.spectrum = this.fourier.computeSpectrum(this.output, fs);
+    }
   }
 
   // Atualiza resposta em frequência do filtro FIR
@@ -226,6 +263,6 @@ export class TransmitterComponent {
     const h: Float64Array = this.filter.designBandPassFir(N, fs, fLow, fHigh);
     
     // Calcula resposta em frequência usando FourierTransformService
-    this.freqResponse = this.fourier.computeFrequencyResponse(h, fs, 256);
+    this.freqResponse = this.fourier.computeFrequencyResponse(h, fs, fs/2);
   }
 }

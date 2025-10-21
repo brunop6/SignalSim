@@ -16,6 +16,9 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
   @Input() data?: SignalOutput;
   @Input() title = 'Signal';
   @Input() type: 'signal' | 'frequency-response' | 'spectrum' = 'signal';
+  @Input() modulator?: SignalOutput;
+  // Optional max for x-axis (used for spectrum/frequency-response)
+  @Input() xMax?: number;
 
   @ViewChild('canvas') canvasRef?: ElementRef<HTMLCanvasElement>;
 
@@ -31,7 +34,10 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data'] && !changes['data'].firstChange) {
+    if ((changes['data'] && !changes['data'].firstChange) ||
+        (changes['xMax'] && !changes['xMax'].firstChange) ||
+        (changes['type'] && !changes['type'].firstChange) ||
+        (changes['modulator'] && !changes['modulator'].firstChange)) {
       this.render();
     }
   }
@@ -74,14 +80,17 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
             type: 'linear',
             title: { 
               display: true, 
-              text: this.type=='frequency-response' ? 'Frequency (Hz)' : 'Time (s)' },
+              text: (this.type === 'frequency-response' || this.type === 'spectrum') ? 'Frequência (Hz)' : 'Tempo (s)' 
+            },
             ticks: { maxTicksLimit: 10 },
+            min: (this.type === 'frequency-response' || this.type === 'spectrum') ? 0 : undefined,
+            max: (this.type === 'frequency-response' || this.type === 'spectrum') ? (this.xMax ?? undefined) : undefined,
           },
           y: {
             title: { display: true, text: 'Amplitude' },
             ticks: { maxTicksLimit: 6 },
-            suggestedMin: this.type=='frequency-response' ? -1 : -5,
-            suggestedMax: this.type=='frequency-response' ? 1 : 5
+            suggestedMin: (this.type === 'frequency-response' || this.type === 'spectrum') ? 0 : -5,
+            suggestedMax: (this.type === 'frequency-response' || this.type === 'spectrum') ? undefined : 5
           }
         },
         plugins: {
@@ -96,6 +105,19 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
         parsing: false
       }
     };
+
+    if (this.modulator){
+      config.data.datasets?.push({
+        label: 'Sinal Modulador',
+        data: this.modulator.data,
+        borderColor: '#0070F3',
+        backgroundColor: 'rgba(0,112,243,0.15)',
+        fill: true,
+        pointRadius: 0,
+        borderWidth: 1.5,
+        tension: 0, // straight lines
+      });
+    }
 
     this.chart = new Chart(ctx, config);
   }
