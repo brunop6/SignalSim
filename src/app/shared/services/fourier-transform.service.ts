@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { SignalOutput } from '../interfaces/signal-output';
+import { SignalData } from '../interfaces/signal-data';
 
 @Injectable({
   providedIn: 'root'
@@ -7,6 +7,10 @@ import { SignalOutput } from '../interfaces/signal-output';
 export class FourierTransformService {
 
   constructor() { }
+
+  private generateTransmitterId(): string {
+    return Math.random().toString(36).substring(2, 10);
+  }
 
   /**
    * Calcula a magnitude da DTFT de um vetor de coeficientes para uma frequência específica.
@@ -148,63 +152,60 @@ export class FourierTransformService {
    * @param h Coeficientes do filtro (Float64Array ou number[])
    * @param fs Frequência de amostragem (Hz)
    * @param nFreqs Número de pontos de frequência a calcular (padrão: 256)
-   * @returns SignalOutput com x=frequência (Hz) e y=magnitude
+   * @returns SignalData com x=frequência (Hz) e y=magnitude
    */
-  computeFrequencyResponse(h: Float64Array | number[], fs: number, nFreqs = 256): SignalOutput {
+  computeFrequencyResponse(h: Float64Array, fs: number, nFreqs = 256): SignalData {
     const N = h.length;
     const M = (N - 1) / 2; // centro (assumindo filtro simétrico)
-    const data: { x: number, y: number }[] = [];
+    
+    const x = new Float64Array(nFreqs);
+    const y = new Float64Array(nFreqs);
 
     for (let i = 0; i < nFreqs; i++) {
       const f = i * (fs / 2) / (nFreqs - 1);
-      const mag = this.dtft(h, f, fs, M);
-      data.push({ x: f, y: mag });
+      x[i] = f;
+      y[i] = this.dtft(h, f, fs, M);
     }
 
-    return { data };
+    return { x, y }; // Return SignalData
   }
 
   /**
    * Calcula o espectro de magnitude de um sinal usando FFT.
    * Retorna apenas as frequências positivas (0 até fs/2).
-   * @param signal Sinal de entrada (SignalOutput)
+   * @param signal SignalData de entrada
    * @param fs Frequência de amostragem (Hz)
-   * @returns SignalOutput com x=frequência (Hz) e y=magnitude normalizada
+   * @returns SignalData com x=frequência (Hz) e y=magnitude normalizada
    */
-  computeSpectrum(signal: SignalOutput, fs: number): SignalOutput {
-    if (!signal?.data?.length) {
-      return { data: [] };
+  computeSpectrum(signal: SignalData, fs: number): SignalData {
+    if (!signal.x.length) {
+      return { x: new Float64Array(0), y: new Float64Array(0) };
     }
 
-    const N = signal.data.length;
-    
-    // Extrair valores do sinal
-    let x = signal.data.map(p => p.y);
+      const N = signal.y.length;
     
     // Fazer padding para próxima potência de 2
     const nextPow2 = Math.pow(2, Math.ceil(Math.log2(N)));
-    while (x.length < nextPow2) {
-      x.push(0);
-    }
+    const padded = new Float64Array(nextPow2);
+    padded.set(signal.y);
     
-    // Aplicar FFT
-    const fftResult = this.fft(x);
+    // Aplicar FFT (convert to number[] for FFT input)
+    const fftResult = this.fft(Array.from(padded));
     const fftLen = fftResult.length;
     
     // Calcular magnitudes e frequências (apenas metade positiva)
-    const data: { x: number, y: number }[] = [];
     const halfLen = Math.floor(fftLen / 2) + 1;
+    const x = new Float64Array(halfLen);
+    const y = new Float64Array(halfLen);
     
     for (let k = 0; k < halfLen; k++) {
-      const freq = k * fs / fftLen;
+      x[k] = k * fs / fftLen;
       const magnitude = Math.sqrt(fftResult[k].real ** 2 + fftResult[k].imag ** 2) / N;
       
       // Dobrar a magnitude para frequências positivas (exceto DC e Nyquist)
-      const adjustedMag = (k > 0 && k < fftLen / 2) ? 2 * magnitude : magnitude;
-      
-      data.push({ x: freq, y: adjustedMag });
+      y[k] = (k > 0 && k < fftLen / 2) ? 2 * magnitude : magnitude;
     }
-    
-    return { data };
+        
+    return { x, y }; // Return SignalData
   }
 }

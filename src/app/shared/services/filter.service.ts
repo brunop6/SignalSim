@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { SignalOutput } from '../interfaces/signal-output';
+import { SignalData } from '../interfaces/signal-data';
 
 @Injectable({
   providedIn: 'root'
@@ -10,16 +10,19 @@ export class FilterService {
 
   /**
    * Aplica um filtro FIR passa-faixa em um sinal no tempo.
-   * - Se fs não for informado, será estimado a partir do eixo do tempo (x)
-   * - O filtro é projetado via janela de Hamming (windowed-sinc)
-   * - A saída preserva o mesmo comprimento do sinal de entrada (convolução "same")
+   * @param signal Sinal de entrada
+   * @param fLow Limite inferior da faixa de passagem
+   * @param fHigh Limite superior da faixa de passagem
+   * @param fs Frequência de amostragem
+   * @param order Ordem do filtro (deve ser ímpar)
+   * @returns Sinal filtrado
    */
-  bandPass(signal: SignalOutput, fLow: number, fHigh: number, fs?: number, order = 101): SignalOutput {
-    if (!signal?.data?.length) return { data: [] };
+  bandPass(signal: SignalData, fLow: number, fHigh: number, fs: number, order = 101): SignalData {
+    if (!signal.x.length) {
+      return { x: new Float64Array(0), y: new Float64Array(0) };
+    }
 
     // Sanitize params
-    const nSamples = signal.data.length;
-    fs = fs ?? this.estimateSamplingRate(signal);
     fs = Math.max(1e-6, fs);
 
     // Ajusta ordem para ímpar (filtragem linear fase simétrica)
@@ -32,46 +35,24 @@ export class FilterService {
     fHigh = Math.max(0, Math.min(fHigh, nyq - 1e-9));
 
     if (fLow >= fHigh) {
-      // Nada a fazer: intervalo inválido, retorna cópia do sinal
-      return { data: signal.data.map(p => ({ x: p.x, y: p.y })) };
+      // Intervalo inválido, retorna cópia do sinal original
+      return { x: signal.x, y: new Float64Array(signal.y) };
     }
-
-    // Monta vetor do sinal
-    const x = new Float64Array(nSamples);
-    for (let i = 0; i < nSamples; i++) x[i] = signal.data[i].y;
 
     const h = this.designBandPassFir(order, fs, fLow, fHigh);
-    const y = this.convolveSame(x, h);
+  const y = this.convolveSame(signal.y, h);
 
-    // Retorna no mesmo formato (mantém eixo do tempo original)
-    const out: SignalOutput = { data: new Array(nSamples) } as SignalOutput;
-    for (let i = 0; i < nSamples; i++) {
-      out.data[i] = { x: signal.data[i].x, y: y[i] };
-    }
-    return out;
-  }
-
-  // ===== Helpers =====
-
-  /** Estima fs pela média das diferenças consecutivas do eixo do tempo */
-  private estimateSamplingRate(signal: SignalOutput): number {
-    if (!signal.data || signal.data.length < 2) return 1;
-    let sumDt = 0;
-    let count = 0;
-    for (let i = 1; i < signal.data.length; i++) {
-      const dt = signal.data[i].x - signal.data[i - 1].x;
-      if (isFinite(dt) && dt > 0) {
-        sumDt += dt;
-        count++;
-      }
-    }
-    const avgDt = count > 0 ? sumDt / count : 1;
-    return 1 / Math.max(avgDt, 1e-12);
+    // Reuse x-axis from input (no copy)
+    return { x: signal.x, y };
   }
 
   /**
    * Projeta um FIR passa-faixa via (LP fHigh - LP fLow) com janela de Hamming
-   * - order deve ser ímpar
+   * @param order Ordem do filtro (deve ser ímpar)
+   * @param fs Frequência de amostragem
+   * @param fLow Limite inferior da faixa de passagem
+   * @param fHigh Limite superior da faixa de passagem
+   * @returns Coeficientes do filtro FIR passa-faixa
    */
   designBandPassFir(order: number, fs: number, fLow: number, fHigh: number): Float64Array {
     const N = order;
@@ -115,14 +96,23 @@ export class FilterService {
     return h;
   }
 
-  /** sinc(x) = sin(pi x) / (pi x), com sinc(0)=1 */
+  /**
+   * Função sinc: sinc(x) = sin(pi x) / (pi x), com sinc(0)=1
+   * @param x Valor de entrada
+   * @returns Valor da função sinc
+   */
   private sinc(x: number): number {
     if (Math.abs(x) < 1e-12) return 1;
     const pix = Math.PI * x;
     return Math.sin(pix) / pix;
   }
 
-  /** Convolução modo "same": saída com mesmo tamanho que o sinal de entrada */
+  /**
+   * Convolução modo "same": saída com mesmo tamanho que o sinal de entrada
+   * @param x Sinal de entrada
+   * @param h Resposta ao impulso do filtro
+   * @returns Sinal convoluído
+   */
   private convolveSame(x: Float64Array, h: Float64Array): Float64Array {
     const N = x.length;
     const M = h.length;

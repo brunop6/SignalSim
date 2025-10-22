@@ -1,8 +1,10 @@
 import { Component, Input, ViewChild, ElementRef, AfterViewInit, OnChanges, SimpleChanges, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SignalOutput } from '../../shared/interfaces/signal-output';
+
+import { SignalData } from '../../shared/interfaces/signal-data';
+
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
-import { LiteralArray } from '@angular/compiler';
+
 
 Chart.register(...registerables);
 
@@ -13,10 +15,10 @@ Chart.register(...registerables);
   styleUrl: './signal-chart.component.scss'
 })
 export class SignalChartComponent implements AfterViewInit, OnChanges {
-  @Input() data?: SignalOutput;
+  @Input() data?: SignalData;
   @Input() title = 'Signal';
   @Input() type: 'signal' | 'frequency-response' | 'spectrum' = 'signal';
-  @Input() modulator?: SignalOutput;
+  @Input() modulator?: SignalData;
   // Optional max for x-axis (used for spectrum/frequency-response)
   @Input() xMax?: number;
 
@@ -52,9 +54,12 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
     this.destroyChart();
 
     const output = this.data;
-    if (!output || !output.data || output.data.length === 0) {
+    if (!output || output.x.length === 0) {
       return; // nothing to draw yet
     }
+
+    // Convert Float64Array to Chart.js format {x, y}[]
+    const chartData = this.convertToChartData(output.x, output.y);
 
     const config: ChartConfiguration<'line'> = {
       type: 'line',
@@ -62,7 +67,7 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
         datasets: [
           {
             label: this.title,
-            data: output.data,
+            data: chartData,
             borderColor: '#00C9A7',
             backgroundColor: 'rgba(0,201,167,0.15)',
             fill: true,
@@ -106,10 +111,11 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
       }
     };
 
-    if (this.modulator){
+    if (this.modulator && this.modulator.x.length > 0){
+      const modulatorData = this.convertToChartData(this.modulator.x, this.modulator.y);
       config.data.datasets?.push({
         label: 'Sinal Modulador',
-        data: this.modulator.data,
+        data: modulatorData,
         borderColor: '#0070F3',
         backgroundColor: 'rgba(0,112,243,0.15)',
         fill: true,
@@ -120,6 +126,18 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
     }
 
     this.chart = new Chart(ctx, config);
+  }
+
+  /**
+   * Converts Float64Array x and y to Chart.js format {x, y}[]
+   */
+  private convertToChartData(x: Float64Array, y: Float64Array): Array<{x: number, y: number}> {
+    const data: Array<{x: number, y: number}> = [];
+    const len = Math.min(x.length, y.length);
+    for (let i = 0; i < len; i++) {
+      data.push({ x: x[i], y: y[i] });
+    }
+    return data;
   }
 
   private destroyChart(): void {

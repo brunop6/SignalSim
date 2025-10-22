@@ -175,7 +175,7 @@
 		<details open class="nb-section">
 			<summary class="nb-heading"><b>3.1) Gráfico do Sinal Modulado</b></summary>
 			<div class="chart-wrap">
-				<app-signal-chart [data]="output" [modulator]="filterEnabled && filtered?.data?.length ? filtered : baseband"
+				<app-signal-chart [data]="output" [modulator]="filterEnabled && filtered ? filtered : baseband"
 					title="Sinal Modulado"></app-signal-chart>
 			</div>
 		</details>

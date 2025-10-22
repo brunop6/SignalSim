@@ -9,10 +9,10 @@ import { FilterService } from '../../shared/services/filter.service';
 import { FourierTransformService } from '../../shared/services/fourier-transform.service';
 
 import { Signal } from '../../shared/interfaces/signal.interface';
-import { SignalOutput } from '../../shared/interfaces/signal-output';
 
 import { SignalTypes } from '../../shared/enums/signal-types.enum';
 import { Modulations } from '../../shared/enums/modulations';
+import { SignalData } from '../../shared/interfaces/signal-data';
 
 @Component({
   selector: 'app-transmitter',
@@ -28,11 +28,11 @@ export class TransmitterComponent {
   signalTypes = Object.values(SignalTypes);
   modulationModes = Object.values(Modulations);
   
-  baseband?: SignalOutput;
-  freqResponse?: SignalOutput;
-  filtered?: SignalOutput; // filtered modulated
-  output?: SignalOutput; // modulated
-  spectrum?: SignalOutput; // spectrum of modulated signal
+  freqResponse?: SignalData;
+  baseband?: SignalData;
+  filtered?: SignalData; // filtered baseband
+  output?: SignalData; // modulated
+  spectrum?: SignalData; // spectrum of modulated signal
 
   filterEnabled = false;
 
@@ -164,7 +164,7 @@ export class TransmitterComponent {
     this.generateBaseband();
 
     // Aplica filtro passa-faixa na banda-base, se habilitado
-    if (this.filterEnabled && this.baseband?.data?.length) {
+    if (this.filterEnabled && this.baseband?.x.length) {
       this.filtered = this.filter.bandPass(this.baseband, this.filterLow, this.filterHigh, this.fs, this.filterOrder);
     } else {
       this.filtered = undefined;
@@ -194,8 +194,8 @@ export class TransmitterComponent {
       frequency: Number(g.get('frequency')?.value),
       phase: Number(g.get('phase')?.value) * Math.PI / 180 // Converte graus para radianos
     }));
-    // Gera banda-base e guarda
-    this.baseband = this.tx.createSignal(signals, dur, fs);
+  // Gera banda-base e guarda (retorna SignalData)
+  this.baseband = this.tx.createSignal(signals, dur, fs);
   }
 
   private generateTransmitterId(): string {
@@ -214,7 +214,7 @@ export class TransmitterComponent {
 
   // 2) Gerar Filtro e aplicar na banda-base
   generateFilter(): void {
-    if (!this.baseband || !this.baseband.data?.length || !this.filterEnabled) {
+    if (!this.baseband || !this.baseband.x.length || !this.filterEnabled) {
       this.filtered = undefined;
       this.freqResponse = undefined;
       return;
@@ -246,6 +246,8 @@ export class TransmitterComponent {
     if (this.output) {
       this.spectrum = this.fourier.computeSpectrum(this.output, fs);
     }
+
+    console.log('Modulated signal generated.', this.output);
   }
 
   // Atualiza resposta em frequência do filtro FIR

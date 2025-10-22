@@ -1,6 +1,5 @@
+import { SignalData } from './signal-data';
 export interface SignalOutput {
-  data: { 
-    x: number; 
-    y: number;
-  }[]
+  transmitterId: string;
+  data: SignalData;
 }
