@@ -1,0 +1,22 @@
+.tx-card {
+  width: 250px;
+  //Reticencias se o conteúdo que ultrapassar o limite do card
+  border: 1px solid var(--secondary-color);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease-in-out;
+  
+  h3{
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &:hover {
+    cursor: pointer;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 6px var(--primary-color);
+    background-color: rgba(0, 201, 167, 0.1);
+  }
+}

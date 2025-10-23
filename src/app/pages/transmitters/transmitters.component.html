@@ -1,0 +1,23 @@
+<section class="section">
+  <div class="section-header">
+    <h2>Transmissores</h2>
+  </div>
+  
+  <div class="cards">
+    @for (transmitter of transmitters; track transmitter.signalId) {
+      <app-transmitter-card [transmitter]="transmitter"></app-transmitter-card>
+    } @empty {
+      <p>Nenhum transmissor encontrado.</p>
+    }
+  </div>
+  
+  <button type="button" class="primary" (click)="createTx()">Criar Tx</button>
+</section>
+
+<section class="section" style="margin-top: 2rem;">
+  <div class="section-header">
+    <h2>Canais</h2>
+    <button type="button" class="primary" (click)="createChannel()">Criar Canal</button>
+  </div>
+  <!-- Lista de canais virá aqui futuramente -->
+</section>

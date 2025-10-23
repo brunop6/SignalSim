@@ -200,3 +200,18 @@
 			</div>
 		</details>
 	</details>
+
+	
+	<div class="tx-footer">
+		<div class="delete-section">
+			<button type="button" class="delete-btn" (click)="deleteTransmitter()">Excluir Transmissor</button>
+		</div>
+		
+		<!--Botão para transmitir-->
+		@if(this.output) {
+			<div class="transmit-section">
+				<button (click)="transmit()">Transmitir</button>
+			</div>
+		}
+	</div>
+</div>

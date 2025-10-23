@@ -1,0 +1,19 @@
+<div class="tx-card" (click)="open()">
+	<div class="tx-card__header">
+		<h3>Transmissor {{ transmitter.signalId }}</h3>
+	</div>
+	<div class="tx-card__body">
+		<div>
+			<b>fs:</b>
+			<small>{{ transmitter.config.samplingFrequency }} Hz</small>
+		</div>
+		<div>
+			<b>Duração:</b>
+			<small>{{ transmitter.config.duration }} ms</small>
+		</div>
+		<div>
+			<b>Portadora:</b>
+			<small>{{ transmitter.config.modulation.carrierFrequency }} Hz</small>
+		</div>
+	</div>  
+</div>

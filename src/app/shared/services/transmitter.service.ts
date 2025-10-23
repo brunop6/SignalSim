@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 // Interfaces
 import { Signal } from '../interfaces/signal.interface';
@@ -16,22 +16,22 @@ import { FourierTransformService } from './fourier-transform.service';
 })
 export class TransmitterService {
 
-  constructor(
-    private fTService: FourierTransformService
-  ) { }
+  private fTService = inject(FourierTransformService);
 
-    /**
+  constructor() { }
+
+  /**
    * Cria um sinal a partir de uma lista de sinais, duração e frequência de amostragem.
    * @param signals Lista de sinais a serem combinados.
    * @param duration Duração total do sinal (em segundos).
    * @param fs Frequência de amostragem (em Hz).
-  * @returns SignalData (x, y).
-   */
+   * @returns SignalData (x, y).
+   */ 
   createSignal(signals: Signal[], duration: number, fs: number): SignalData {
     // Assegurando frequência de amostragem e nº de amostras positivas
     fs = Math.max(1e-6, fs);
     const totalSamples = Math.max(1, Math.round(duration * fs));
-    
+
     // Inicializa eixo do tempo e amplitude
     const x = new Float64Array(totalSamples);
     const y = new Float64Array(totalSamples);

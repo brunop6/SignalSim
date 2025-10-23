@@ -1,25 +1,25 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup, FormArray } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
-import { SignalChartComponent } from '../../components/signal-chart/signal-chart.component';
+import { SignalChartComponent } from '../../../components/signal-chart/signal-chart.component';
 
 // Services
-import { TransmitterService } from '../../shared/services/transmitter.service';
-import { FilterService } from '../../shared/services/filter.service';
-import { FourierTransformService } from '../../shared/services/fourier-transform.service';
-import { FirestoreService } from '../../shared/services/firestore.service';
+import { TransmitterService } from '../../../shared/services/transmitter.service';
+import { FilterService } from '../../../shared/services/filter.service';
+import { FourierTransformService } from '../../../shared/services/fourier-transform.service';
+import { FirestoreService } from '../../../shared/services/firestore.service';
 
 // Interfaces
-import { Signal } from '../../shared/interfaces/signal.interface';
-import { SignalData } from '../../shared/interfaces/signal-data';
-import { SignalOutput } from '../../shared/interfaces/signal-output';
+import { Signal } from '../../../shared/interfaces/signal.interface';
+import { SignalData } from '../../../shared/interfaces/signal-data';
+import { SignalOutput } from '../../../shared/interfaces/signal-output';
 
 // Enums
-import { SignalTypes } from '../../shared/enums/signal-types.enum';
-import { Modulations } from '../../shared/enums/modulations';
-import { TransmitterConfig } from '../../shared/interfaces/transmitter-config';
+import { SignalTypes } from '../../../shared/enums/signal-types.enum';
+import { Modulations } from '../../../shared/enums/modulations';
+import { TransmitterConfig } from '../../../shared/interfaces/transmitter-config';
 
 @Component({
   selector: 'app-transmitter',
@@ -36,7 +36,7 @@ export class TransmitterComponent implements OnInit {
 
   signalTypes = Object.values(SignalTypes);
   modulationModes = Object.values(Modulations);
-  
+
   freqResponse?: SignalData;
   baseband?: SignalData;
   filtered?: SignalData; // filtered baseband
@@ -45,17 +45,17 @@ export class TransmitterComponent implements OnInit {
 
   filterEnabled = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private tx: TransmitterService,
-    private filter: FilterService,
-    private fourier: FourierTransformService,
-    private firestore: FirestoreService,
-    private route: ActivatedRoute
-  ) {
+  private fb = inject(FormBuilder);
+  private tx = inject(TransmitterService);
+  private filter = inject(FilterService);
+  private fourier = inject(FourierTransformService);
+  private firestore = inject(FirestoreService);
+  private route = inject(ActivatedRoute);
+
+  constructor() {
     this.transmitterId = this.route.snapshot.paramMap.get('id') || '';
     this.transmitterUrl = window.location.origin + '/receiver?tx=' + this.transmitterId;
-    
+
     this.form = this.fb.group({
       duration: [200, [Validators.required, Validators.min(0)]], // ms
       samplingFrequency: [5000, [Validators.required, Validators.min(1)]], // Hz
@@ -70,7 +70,6 @@ export class TransmitterComponent implements OnInit {
       freqRespMax: [null],
       spectrumMax: [null]
     });
-
   }
 
   async ngOnInit(): Promise<void> {
@@ -177,19 +176,19 @@ export class TransmitterComponent implements OnInit {
     const v = this.form.get('spectrumMax')?.value;
     return v == null || v === '' ? this.fs / 2 : Number(v);
   }
-  
+
   get clampedFreqRespMax(): number {
     return Math.min(this.requestedFreqRespMax, this.fs / 2);
   }
-  
+
   get clampedSpectrumMax(): number {
     return Math.min(this.requestedSpectrumMax, this.fs / 2);
   }
-  
+
   get freqRespMaxExceeded(): boolean {
     return this.requestedFreqRespMax > this.fs / 2 + 1e-9;
   }
-  
+
   get spectrumMaxExceeded(): boolean {
     return this.requestedSpectrumMax > this.fs / 2 + 1e-9;
   }
@@ -227,8 +226,8 @@ export class TransmitterComponent implements OnInit {
       frequency: Number(g.get('frequency')?.value),
       phase: Number(g.get('phase')?.value) * Math.PI / 180 // Converte graus para radianos
     }));
-  // Gera banda-base e guarda (retorna SignalData)
-  this.baseband = this.tx.createSignal(signals, dur, fs);
+    // Gera banda-base e guarda (retorna SignalData)
+    this.baseband = this.tx.createSignal(signals, dur, fs);
   }
 
   // 1.1) Gerar Sinal (banda-base)
@@ -241,7 +240,7 @@ export class TransmitterComponent implements OnInit {
     this.freqResponse = undefined;
   }
 
-  // 2) Gerar Filtro e aplicar na banda-base
+  // 2) Gerar Filtro e aplica na banda-base
   generateFilter(): void {
     if (!this.baseband || !this.baseband.x.length || !this.filterEnabled) {
       this.filtered = undefined;
@@ -270,10 +269,47 @@ export class TransmitterComponent implements OnInit {
     const mi = Number(this.form.get('modulationIndex')?.value) || 0;
     const mode = this.form.get('modulationMode')?.value as Modulations;
     this.output = this.tx.modulateSignal(baseForMod, fc, fs, mi, mode);
-    
+
     // Calcular espectro do sinal modulado
     if (this.output) {
       this.spectrum = this.fourier.computeSpectrum(this.output, fs);
+    }
+
+    try {
+      const id = await this.firestore.saveTransmitter({
+        signalId: this.transmitterId,
+        config: {
+          duration: Number(this.form.get('duration')?.value) || 0,
+          samplingFrequency: fs,
+          signals: this.signalsForm.controls.map(g => ({
+            type: g.get('type')?.value as SignalTypes,
+            amplitude: Number(g.get('amplitude')?.value),
+            frequency: Number(g.get('frequency')?.value),
+            phase: Number(g.get('phase')?.value)
+          })),
+          modulation: {
+            carrierFrequency: fc,
+            modulationIndex: mi,
+            modulationMode: mode,
+            spectrumMax: this.requestedSpectrumMax
+          },
+          filter: {
+            lowCutoff: this.filterLow,
+            highCutoff: this.filterHigh,
+            order: this.filterOrder,
+            freqRespMax: this.requestedFreqRespMax
+          }
+        }
+      }, this.transmitterId);
+    } catch (error: unknown) {
+      console.error('Error saving transmitter config to Firestore:', error);
+    }
+  }
+
+  async transmit(): Promise<void> {
+    if (!this.output) {
+      console.error('No output signal to transmit.');
+      return;
     }
 
     const signalOutput: SignalOutput = {
@@ -284,41 +320,11 @@ export class TransmitterComponent implements OnInit {
       },
     };
 
-    this.firestore.saveTransmitter({
-      signalId: this.transmitterId,
-      config: {
-        duration: Number(this.form.get('duration')?.value) || 0,
-        samplingFrequency: fs,
-        signals: this.signalsForm.controls.map(g => ({
-          type: g.get('type')?.value as SignalTypes,
-          amplitude: Number(g.get('amplitude')?.value),
-          frequency: Number(g.get('frequency')?.value),
-          phase: Number(g.get('phase')?.value)
-        })),
-        modulation: {
-          carrierFrequency: fc,
-          modulationIndex: mi,
-          modulationMode: mode,
-          spectrumMax: this.requestedSpectrumMax
-        },
-        filter: {
-          lowCutoff: this.filterLow,
-          highCutoff: this.filterHigh,
-          order: this.filterOrder,
-          freqRespMax: this.requestedFreqRespMax
-        }
-      }
-    }, this.transmitterId).then(() => {
-      console.log('Transmitter config saved to Firestore');
-    }).catch(error => {
-      console.error('Error saving transmitter config to Firestore:', error);
-    });
-
-    this.firestore.saveSignalOutput(signalOutput).then(() => {
-      console.log('Signal output saved to Firestore');
-    }).catch(error => {
+    try {
+      await this.firestore.saveSignalOutput(signalOutput);
+    } catch (error: unknown) {
       console.error('Error saving signal output to Firestore:', error);
-    });
+    }
   }
 
   // Atualiza resposta em frequência do filtro FIR
@@ -331,11 +337,25 @@ export class TransmitterComponent implements OnInit {
     const fs = this.fs;
     const fLow = this.filterLow;
     const fHigh = this.filterHigh;
-    
+
     // Obtém coeficientes FIR do FilterService
     const h: Float64Array = this.filter.designBandPassFir(N, fs, fLow, fHigh);
-    
+
     // Calcula resposta em frequência usando FourierTransformService
-    this.freqResponse = this.fourier.computeFrequencyResponse(h, fs, fs/2);
+    this.freqResponse = this.fourier.computeFrequencyResponse(h, fs, fs / 2);
+  }
+
+  async deleteTransmitter(): Promise<void> {
+    if (!this.transmitterId) {
+      return;
+    }
+
+    try {
+      await this.firestore.deleteTransmitter(this.transmitterId);
+
+      window.location.href = '/transmitter';
+    } catch (error: unknown) {
+      console.error('Error deleting transmitter:', error);
+    }
   }
 }

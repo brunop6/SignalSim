@@ -2,8 +2,17 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
+    path: '',
+    redirectTo: '/transmitter',
+    pathMatch: 'full'
+  },
+  {
+    path: 'transmitter',
+    loadComponent: () => import('./pages/transmitters/transmitters.component').then(m => m.TransmittersComponent)
+  },
+  {
     path: 'transmitter/:id',
-    loadComponent: () => import('./pages/transmitter/transmitter.component').then(m => m.TransmitterComponent)
+    loadComponent: () => import('./pages/transmitters/transmitter/transmitter.component').then(m => m.TransmitterComponent)
   },
   {
     path: 'receiver',

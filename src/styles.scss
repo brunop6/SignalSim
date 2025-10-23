@@ -4,10 +4,12 @@
 
 :root {
   --primary-color: #00C9A7;
+  --primary-hover-color: rgba(0, 201, 167, 0.1);;
   --secondary-color: #0070F3;
   --dark-bg-color: #111827;
   --font-color: #F9FAFB;
   --accent-color: #FF4081;
+  --accent-hover-color: rgba(255, 64, 129, 0.1);
   --gradient: linear-gradient(90deg, #00C9A7 0%, #9100FE 100%);
   --warning-text-color: #b91c1c;
 }
@@ -66,7 +68,7 @@ option {
     cursor: pointer;
     border-color: var(--primary-color);
     box-shadow: 0 0 6px var(--primary-color);
-    background-color: rgba(0, 201, 167, 0.1);
+    background-color: var(--primary-hover-color);
   }
 
   &:disabled {
@@ -77,4 +79,16 @@ option {
 
 .warn-text {
   color: var(--accent-color);
+}
+
+.delete-btn {
+  background-color: var(--accent-color);
+  color: white;
+
+  &:hover {
+    background-color: var(--accent-hover-color);
+    color: var(--warning-text-color);
+    box-shadow: 0 0 6px var(--warning-text-color);
+    border-color: var(--warning-text-color);
+  }
 }
