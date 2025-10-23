@@ -4,7 +4,7 @@
   </div>
   
   <div class="cards">
-    @for (transmitter of transmitters; track transmitter.signalId) {
+    @for (transmitter of transmitters; track transmitter.id) {
       <app-transmitter-card [transmitter]="transmitter"></app-transmitter-card>
     } @empty {
       <p>Nenhum transmissor encontrado.</p>

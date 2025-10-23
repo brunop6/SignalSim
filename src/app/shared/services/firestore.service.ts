@@ -94,14 +94,15 @@ export class FirestoreService {
    * Obtém todos os transmissores salvos no Firestore
    * @returns Lista de configurações de transmissores
    */
-  async getAllTransmitters(): Promise<TransmitterConfig[]> {
+  async getAllTransmitters(): Promise<Array<TransmitterConfig & { id: string }>> {
     try {
       const txRef = collection(this.db, this.transmittersPath);
       const txSnap = await getDocs(txRef);
 
-      const transmitters: TransmitterConfig[] = [];
-      txSnap.forEach((doc) => {
-        transmitters.push(doc.data() as TransmitterConfig);
+      const transmitters: Array<TransmitterConfig & { id: string }> = [];
+      txSnap.forEach((docSnap) => {
+        const data = docSnap.data() as TransmitterConfig;
+        transmitters.push({ id: docSnap.id, ...data });
       });
 
       return transmitters;

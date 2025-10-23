@@ -17,7 +17,7 @@ import { TransmitterCardComponent } from '../../components/transmitter-card/tran
   styleUrl: './transmitters.component.scss'
 })
 export class TransmittersComponent {
-  transmitters: TransmitterConfig[] = [];
+  transmitters: Array<TransmitterConfig & { id: string }> = [];
 
   private firestore = inject(FirestoreService);
   private router = inject(Router);
