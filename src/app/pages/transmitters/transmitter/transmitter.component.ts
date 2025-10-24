@@ -342,7 +342,7 @@ export class TransmitterComponent implements OnInit {
     const h: Float64Array = this.filter.designBandPassFir(N, fs, fLow, fHigh);
 
     // Calcula resposta em frequência usando FourierTransformService
-    this.freqResponse = this.fourier.computeFrequencyResponse(h, fs, fs / 2);
+    this.freqResponse = this.fourier.computeFrequencyResponse(h, fs, fs / 5);
   }
 
   async deleteTransmitter(): Promise<void> {
