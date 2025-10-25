@@ -6,11 +6,14 @@ import {
   setDoc,
   getDoc,
   getDocs,
-  deleteDoc
+  deleteDoc,
+  onSnapshot,
+  DocumentData,
 } from '@angular/fire/firestore';
 
 import { SignalOutput } from '../interfaces/signal-output';
 import { TransmitterConfig } from '../interfaces/transmitter-config';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -88,6 +91,19 @@ export class FirestoreService {
       err.cause = error;
       throw err;
     }
+  }
+
+  subscribeToSignal(id: string): Observable<DocumentData | undefined> {
+    return new Observable((observer) => {
+      const unsubscribe = onSnapshot(doc(this.db, "signals", id), (doc) => {
+        observer.next(doc.data());
+      });
+
+      // Cleanup subscription on unsubscription
+      return () => {
+        unsubscribe();
+      };
+    });
   }
 
   /**

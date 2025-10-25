@@ -1,1 +1,25 @@
-<p>receiver works!</p>
+<div class="receiver-container">
+  <header class="receiver-header">
+    <h1>Receptor</h1>
+    <p *ngIf="id">Sinal <b><{{ id }}></b></p>
+  </header>
+
+  <div *ngIf="loading" class="loading">
+    Carregando sinal...
+  </div>
+
+  <div *ngIf="error" class="error">
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="!loading && !error && signalData" class="signal-section">
+    <h2>Sinal Recebido</h2>
+    <div class="chart-wrap">
+      <app-signal-chart
+        [data]="signalData"
+        [title]="'Sinal Modulado Recebido'"
+        [type]="'signal'">
+      </app-signal-chart>
+    </div>
+  </div>
+</div>

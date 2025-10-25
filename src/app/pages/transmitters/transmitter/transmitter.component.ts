@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup, FormArray } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import QRCode from 'qrcode';
 
 import { SignalChartComponent } from '../../../components/signal-chart/signal-chart.component';
 
@@ -33,6 +34,7 @@ export class TransmitterComponent implements OnInit {
   transmitterUrl = '';
   transmitterId = '';
   transmitterConfig: TransmitterConfig | null = null;
+  qrCodeDataUrl = '';
 
   signalTypes = Object.values(SignalTypes);
   modulationModes = Object.values(Modulations);
@@ -54,7 +56,8 @@ export class TransmitterComponent implements OnInit {
 
   constructor() {
     this.transmitterId = this.route.snapshot.paramMap.get('id') || '';
-    this.transmitterUrl = window.location.origin + '/receiver?tx=' + this.transmitterId;
+    
+    this.transmitterUrl = `${window.location.origin}.com/receiver?tx=${this.transmitterId}`;
 
     this.form = this.fb.group({
       duration: [200, [Validators.required, Validators.min(0)]], // ms
@@ -76,6 +79,9 @@ export class TransmitterComponent implements OnInit {
     // Se houver um ID de transmissor na rota, tenta carregar a configuração salva
     if (this.transmitterId) {
       try {
+        // Cria o QR Code em paralelo à requisição (no await)
+        this.generateQRCode();
+
         const cfg = await this.firestore.getTransmitterById(this.transmitterId);
         if (cfg) {
           this.transmitterConfig = cfg;
@@ -343,6 +349,22 @@ export class TransmitterComponent implements OnInit {
 
     // Calcula resposta em frequência usando FourierTransformService
     this.freqResponse = this.fourier.computeFrequencyResponse(h, fs, fs / 5);
+  }
+
+  async generateQRCode(): Promise<void> {
+    try {
+      this.qrCodeDataUrl = await QRCode.toDataURL(this.transmitterUrl, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#111827',
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'H'
+      });
+    } catch (error: unknown) {
+      console.error('Error generating QR code:', error);
+    }
   }
 
   async deleteTransmitter(): Promise<void> {

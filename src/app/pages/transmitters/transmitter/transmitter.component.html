@@ -10,8 +10,9 @@
 		<div class="qr-content">
 			<h3>Escaneie para conectar um receptor</h3>
 			<div class="qr-placeholder">
-				<p>QR Code será gerado aqui</p>
-				<small>URL: {{ transmitterUrl }}</small>
+				<a *ngIf="showQrCode && qrCodeDataUrl" [href]="transmitterUrl" target="_blank" rel="noopener">
+					<img [src]="qrCodeDataUrl" alt="QR Code" />
+				</a>
 			</div>
 			<button type="button" (click)="showQrCode = false">Fechar</button>
 		</div>
