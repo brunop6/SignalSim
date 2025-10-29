@@ -56,8 +56,8 @@ export class TransmitterComponent implements OnInit {
 
   constructor() {
     this.transmitterId = this.route.snapshot.paramMap.get('id') || '';
-    
-    this.transmitterUrl = `${window.location.origin}.com/receiver?tx=${this.transmitterId}`;
+
+    this.transmitterUrl = `${window.location.origin}/receiver?tx=${encodeURIComponent(this.transmitterId)}`;
 
     this.form = this.fb.group({
       duration: [200, [Validators.required, Validators.min(0)]], // ms

@@ -9,14 +9,14 @@ import { SignalTypes } from '../enums/signal-types.enum';
 import { Modulations } from '../enums/modulations';
 
 // Services
-import { FourierTransformService } from './fourier-transform.service';
+import { ModulationService } from './modulation.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TransmitterService {
 
-  private fTService = inject(FourierTransformService);
+  private modulationService = inject(ModulationService);
 
   constructor() { }
 
@@ -69,136 +69,6 @@ export class TransmitterService {
   }
 
   /**
-   * Modula um sinal AM-DSB.
-   * 
-   * s(t) = (1 + ma * m(t)) * cos(2πfc * t)
-   * @param message Sinal a ser modulado.
-   * @param fc Frequência da portadora.
-   * @param ma Índice de modulação.
-   * @returns Sinal modulado (no eixo y).
-   */
-  modulateAM_DSB(message: SignalData, fc: number, ma: number): Float64Array {
-    const N = message.y.length;
-    const out = new Float64Array(N);
-    const omegaC = 2 * Math.PI * fc;
-
-    for (let i = 0; i < N; i++) {
-      const t = message.x[i];
-      const mt = message.y[i];
-
-      out[i] = (1 + ma * mt) * Math.cos(omegaC * t);
-    }
-    return out;
-  }
-
-  /**
-   * Modula um sinal AM-DSB-SC.
-   * 
-   * s(t) = ma * m(t) * cos(2πfc * t)
-   * @param message Sinal a ser modulado.
-   * @param fc Frequência da portadora.
-   * @param ma Índice de modulação.
-   * @returns Sinal modulado (no eixo y).
-   */
-  modulateAM_DSB_SC(message: SignalData, fc: number, ma: number): Float64Array {
-    const N = message.y.length;
-    const out = new Float64Array(N);
-    const omegaC = 2 * Math.PI * fc;
-
-    for (let i = 0; i < N; i++) {
-      const t = message.x[i];
-      const mt = message.y[i];
-
-      out[i] = ma * mt * Math.cos(omegaC * t);
-    }
-
-    return out;
-  }
-
-  /**
-   * Modula um sinal PM.
-   * 
-   * s(t) = cos(2πfc t + kp·m(t))
-   * @param m Sinal a ser modulado.
-   * @param fc Frequência da portadora.
-   * @param kp Constante de modulação PM.
-   * @returns Sinal modulado (no eixo y).
-   */
-  modulatePM(m: SignalData, fc: number, kp: number): Float64Array {
-    const N = m.y.length;
-    const out = new Float64Array(N);
-    const omegaC = 2 * Math.PI * fc;
-
-    for (let i = 0; i < N; i++) {
-      const t = m.x[i];
-      const mt = m.y[i];
-
-      out[i] = Math.cos(omegaC * t + kp * mt);
-    }
-    return out;
-  }
-
-  /**
-   * Modula um sinal FM.
-   * 
-   * s(t) = cos(2πfc t + kf·cumsum(m(t))/fs)
-   * @param m Sinal a ser modulado.
-   * @param fc Frequência da portadora.
-   * @param fs Frequência de amostragem.
-   * @param kf Constante de modulação FM.
-   * @returns Sinal modulado (no eixo y).
-   */
-  modulateFM(m: SignalData, fc: number, fs: number, kf: number): Float64Array {
-    const N = m.y.length;
-    const out = new Float64Array(N);
-    const omegaC = 2 * Math.PI * fc;
-
-    let sum = 0; // cumsum(m(t))
-    for (let i = 0; i < N; i++) {
-      const t = m.x[i];
-      const mt = m.y[i];
-
-      sum += mt;
-
-      const phase = omegaC * t + kf * sum / fs;
-      out[i] = Math.cos(phase);
-    }
-
-    return out;
-  }
-
-  /**
-   * Modula um sinal AM-SSB-USB (Single Sideband - Upper Sideband) usando o método de Hilbert.
-   * 
-   * s(t) = m(t) * cos(2πfc*t) - mh(t) * sin(2πfc*t)
-   * onde mh(t) é a transformada de Hilbert de m(t)
-   * 
-   * @param message Sinal a ser modulado
-   * @param fc Frequência da portadora
-   * @param ma Índice de modulação
-   * @returns Sinal modulado SSB-USB (no eixo y)
-   */
-  modulateAM_SSB_USB(message: SignalData, fc: number, ma: number): Float64Array {
-    const N = message.x.length;
-    const out = new Float64Array(N);
-    const omegaC = 2 * Math.PI * fc;
-
-    // Calcular a transformada de Hilbert
-    const hilbert = this.hilbertTransform(message);
-
-    // Gerar SSB-USB: s(t) = ma * [m(t) * cos(ωc*t) - mh(t) * sin(ωc*t)]
-    for (let i = 0; i < N; i++) {
-      const t = message.x[i];
-      const mt = message.y[i];
-      const mht = hilbert[i];
-
-      out[i] = ma * (mt * Math.cos(omegaC * t) - mht * Math.sin(omegaC * t));
-    }
-
-    return out;
-  }
-
-  /**
    * Modula um sinal para diferentes esquemas (AM, FM, PM).
    * @param message Sinal a ser modulado.
    * @param fc Frequência da portadora.
@@ -216,25 +86,25 @@ export class TransmitterService {
 
     switch (mode) {
       case Modulations.AM_DSB:
-        y = this.modulateAM_DSB(message, fc, modulationConst);
+        y = this.modulationService.modulateAM_DSB(message, fc, modulationConst);
         break;
 
       case Modulations.AM_DSB_SC:
-        y = this.modulateAM_DSB_SC(message, fc, modulationConst);
+        y = this.modulationService.modulateAM_DSB_SC(message, fc, modulationConst);
         break;
 
       case Modulations.AM_SSB:
-        y = this.modulateAM_SSB_USB(message, fc, modulationConst);
+        y = this.modulationService.modulateAM_SSB_USB(message, fc, modulationConst);
         break;
 
       case Modulations.PM:
         const kp = modulationConst;
-        y = this.modulatePM(message, fc, kp);
+        y = this.modulationService.modulatePM(message, fc, kp);
         break;
 
       case Modulations.FM:
         const kf = modulationConst;
-        y = this.modulateFM(message, fc, fs, kf);
+        y = this.modulationService.modulateFM(message, fc, fs, kf);
         break;
 
       default:
@@ -245,54 +115,4 @@ export class TransmitterService {
     return { x: message.x, y };
   }
 
-  /**
- * Calcula a transformada de Hilbert de um sinal usando FFT.
- * A transformada de Hilbert desloca a fase de todas as componentes de frequência em -90°.
- * 
- * @param signal Sinal de entrada
- * @returns Float64Array com sinal transformado (componente em quadratura)
- */
-  private hilbertTransform(signal: SignalData): Float64Array {
-    const N = signal.y.length;
-    const out = new Float64Array(N);
-
-    // Fazer padding para próxima potência de 2
-    const nextPow2 = Math.pow(2, Math.ceil(Math.log2(N)));
-    const padded = new Float64Array(nextPow2);
-    padded.set(signal.y);
-
-    // Aplicar FFT (convert Float64Array to number[] for FFT input)
-    const fft = this.fTService.fft(Array.from(padded));
-    const fftLen = fft.length;
-
-    // Criar o filtro de Hilbert no domínio da frequência
-    // H(f) = -j para f > 0, +j para f < 0, 0 para f = 0
-    for (let k = 0; k < fftLen; k++) {
-      if (k === 0 || k === fftLen / 2) {
-        // DC e Nyquist: multiplicar por 0
-        fft[k].real = 0;
-        fft[k].imag = 0;
-      } else if (k < fftLen / 2) {
-        // Frequências positivas: multiplicar por -j (rotação de -90°)
-        const temp = fft[k].real;
-        fft[k].real = fft[k].imag;
-        fft[k].imag = -temp;
-      } else {
-        // Frequências negativas: multiplicar por +j (rotação de +90°)
-        const temp = fft[k].real;
-        fft[k].real = -fft[k].imag;
-        fft[k].imag = temp;
-      }
-    }
-
-    // Aplicar IFFT
-    const result = this.fTService.ifft(fft);
-
-    // Construir saída (apenas os N primeiros elementos, descartando o padding)
-    for (let i = 0; i < N; i++) {
-      out[i] = result[i];
-    }
-
-    return out;
-  }
 }

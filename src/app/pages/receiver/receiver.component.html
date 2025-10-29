@@ -21,5 +21,35 @@
         [type]="'signal'">
       </app-signal-chart>
     </div>
+
+    <form [formGroup]="demodForm" class="demod-form">
+      <h3>Configuração da Demodulação</h3>
+      <label>
+        Tipo:
+        <select formControlName="mode">
+          <option *ngFor="let m of modulationModes" [value]="m">{{ m }}</option>
+        </select>
+      </label>
+      <label>
+        fc (Hz):
+        <input type="number" formControlName="fc" />
+      </label>
+      <label>
+        fs (Hz):
+        <input type="number" formControlName="fs" />
+      </label>
+      <label>
+        Índice/Constante:
+        <input type="number" formControlName="demodConst" step="any" />
+      </label>
+    </form>
+
+    <div class="chart-wrap" *ngIf="demodulated">
+      <app-signal-chart
+        [data]="demodulated"
+        [title]="'Sinal Demodulado'"
+        [type]="'signal'">
+      </app-signal-chart>
+    </div>
   </div>
 </div>
