@@ -22,6 +22,74 @@
       </app-signal-chart>
     </div>
 
+    <!-- Filtro -->
+    <details class="nb-section">
+      <summary class="nb-heading" (click)="filterOnOff()">
+        <b>
+          Filtro:
+          <span [class.status-on]="filterEnabled" [class.status-off]="!filterEnabled">
+            {{ filterEnabled ? 'Ativado' : 'Desligado' }}
+          </span>
+        </b>
+      </summary>
+      <form [formGroup]="filterForm" class="form-grid nb-form">
+        <div class="signal-row">
+          <label>
+            f Low (Hz)
+            <input type="number" step="10" formControlName="filterLow" />
+          </label>
+          <label>
+            f High (Hz)
+            <input type="number" step="10" formControlName="filterHigh" />
+          </label>
+          <label>
+            Ordem FIR (ímpar)
+            <input type="number" step="10" formControlName="filterOrder" />
+          </label>
+        </div>
+      </form>
+
+      <span *ngIf="filterEnabled && filterNyquistViolated" class="warn-text">
+        Atenção: fHigh ({{ filterHigh | number:'1.0-2' }}) ≥ fs/2 ({{ (fs/2) | number:'1.0-2' }}) — ajuste a banda do filtro.
+      </span>
+
+      <!-- Gráfico de Resposta em Frequência do Filtro -->
+      <details open class="nb-section" *ngIf="filterEnabled">
+        <summary class="nb-heading"><b>Resposta em Frequência do Filtro</b></summary>
+        <form [formGroup]="filterForm" class="form-grid nb-form">
+          <label>
+            Frequência máxima (Hz)
+            <input type="number" step="any" formControlName="freqRespMax" />
+          </label>
+          <div class="info-block">
+            <span *ngIf="freqRespMaxExceeded" class="warn-text">
+              Atenção: frequência solicitada > fs/2 ({{ (fs/2) | number:'1.0-2' }}). Limitando em fs/2.
+            </span>
+          </div>
+        </form>
+        <div class="chart-wrap" *ngIf="freqResponse">
+          <app-signal-chart 
+            [data]="freqResponse" 
+            [type]="'frequency-response'" 
+            [xMax]="clampedFreqRespMax"
+            title="Resposta em Frequência do Filtro (|H(f)|)">
+          </app-signal-chart>
+        </div>
+      </details>
+
+      <!-- Gráfico do Sinal Filtrado -->
+      <details open class="nb-section" *ngIf="filterEnabled">
+        <summary class="nb-heading"><b>Sinal Recebido Filtrado</b></summary>
+        <div class="chart-wrap" *ngIf="filtered">
+          <app-signal-chart 
+            [data]="filtered" 
+            title="Sinal Filtrado (Passa-Faixa)">
+          </app-signal-chart>
+        </div>
+      </details>
+    </details>
+
+    <!-- Demodulação -->
     <form [formGroup]="demodForm" class="demod-form">
       <h3>Configuração da Demodulação</h3>
       <label>
