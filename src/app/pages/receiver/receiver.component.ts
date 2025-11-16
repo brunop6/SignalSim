@@ -150,17 +150,15 @@ export class ReceiverComponent implements OnInit, OnDestroy {
   }
 
   updateFilter(): void {
-    if (!this.signalData || !this.signalData.x.length || !this.filterEnabled || this.fs <= 0) {
+    if (!this.demodulated || !this.demodulated.x.length || !this.filterEnabled || this.fs <= 0) {
       this.filtered = null;
       this.freqResponse = null;
-      this.updateDemodulation();
       return;
     }
     
     const fs = this.fs;
-    this.filtered = this.filter.bandPass(this.signalData, this.filterLow, this.filterHigh, fs, this.filterOrder);
+    this.filtered = this.filter.bandPass(this.demodulated, this.filterLow, this.filterHigh, fs, this.filterOrder);
     this.updateFreqResponse();
-    this.updateDemodulation();
   }
 
   updateFreqResponse(): void {
@@ -183,13 +181,15 @@ export class ReceiverComponent implements OnInit, OnDestroy {
   updateDemodulation(): void {
     if (!this.signalData) {
       this.demodulated = null;
+      this.filtered = null;
       return;
     }
-    // Demodula o sinal filtrado se o filtro estiver habilitado, senão o original
-    const signalToDemodulate = (this.filterEnabled && this.filtered) ? this.filtered : this.signalData;
     
     const { mode, fc, fs, demodConst } = this.demodForm.value;
-    this.demodulated = this.rx.demodulateSignal(signalToDemodulate, fc, fs, demodConst, mode);
+    this.demodulated = this.rx.demodulateSignal(this.signalData, fc, fs, demodConst, mode);
+    
+    // Aplica filtro após demodulação, se habilitado
+    this.updateFilter();
   }
 
   ngOnDestroy(): void {

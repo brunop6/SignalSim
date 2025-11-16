@@ -40,7 +40,7 @@ export class FilterService {
     }
 
     const h = this.designBandPassFir(order, fs, fLow, fHigh);
-  const y = this.convolveSame(signal.y, h);
+    const y = this.convolveSame(signal.y, h);
 
     // Reuse x-axis from input (no copy)
     return { x: signal.x, y };

@@ -22,6 +22,37 @@
       </app-signal-chart>
     </div>
 
+    <!-- Demodulação -->
+    <form [formGroup]="demodForm" class="demod-form">
+      <h3>Configuração da Demodulação</h3>
+      <label>
+        Tipo:
+        <select formControlName="mode">
+          <option *ngFor="let m of modulationModes" [value]="m">{{ m }}</option>
+        </select>
+      </label>
+      <label>
+        fc (Hz):
+        <input type="number" formControlName="fc" />
+      </label>
+      <label>
+        fs (Hz):
+        <input type="number" formControlName="fs" />
+      </label>
+      <label>
+        Índice/Constante:
+        <input type="number" formControlName="demodConst" step="any" />
+      </label>
+    </form>
+
+    <div class="chart-wrap" *ngIf="demodulated">
+      <app-signal-chart
+        [data]="demodulated"
+        [title]="'Sinal Demodulado'"
+        [type]="'signal'">
+      </app-signal-chart>
+    </div>
+
     <!-- Filtro -->
     <details class="nb-section">
       <summary class="nb-heading" (click)="filterOnOff()">
@@ -79,7 +110,7 @@
 
       <!-- Gráfico do Sinal Filtrado -->
       <details open class="nb-section" *ngIf="filterEnabled">
-        <summary class="nb-heading"><b>Sinal Recebido Filtrado</b></summary>
+        <summary class="nb-heading"><b>Sinal Demodulado Filtrado</b></summary>
         <div class="chart-wrap" *ngIf="filtered">
           <app-signal-chart 
             [data]="filtered" 
@@ -88,36 +119,5 @@
         </div>
       </details>
     </details>
-
-    <!-- Demodulação -->
-    <form [formGroup]="demodForm" class="demod-form">
-      <h3>Configuração da Demodulação</h3>
-      <label>
-        Tipo:
-        <select formControlName="mode">
-          <option *ngFor="let m of modulationModes" [value]="m">{{ m }}</option>
-        </select>
-      </label>
-      <label>
-        fc (Hz):
-        <input type="number" formControlName="fc" />
-      </label>
-      <label>
-        fs (Hz):
-        <input type="number" formControlName="fs" />
-      </label>
-      <label>
-        Índice/Constante:
-        <input type="number" formControlName="demodConst" step="any" />
-      </label>
-    </form>
-
-    <div class="chart-wrap" *ngIf="demodulated">
-      <app-signal-chart
-        [data]="demodulated"
-        [title]="'Sinal Demodulado'"
-        [type]="'signal'">
-      </app-signal-chart>
-    </div>
   </div>
 </div>
