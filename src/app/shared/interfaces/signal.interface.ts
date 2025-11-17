@@ -5,4 +5,9 @@ export interface Signal {
   amplitude: number;
   frequency: number;
   phase: number;
+  /**
+   * Deslocamento DC (offset) a ser somado ao sinal.
+   * Valor em unidades da amplitude do sinal (mesma escala do eixo y).
+   */
+  offset?: number;
 }

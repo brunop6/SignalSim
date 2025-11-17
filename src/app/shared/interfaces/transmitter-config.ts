@@ -9,10 +9,14 @@ export interface SignalConfig {
   amplitude: number;
   frequency: number;
   phase: number;
+  /** Offset DC do sinal (opcional) */
+  offset?: number;
 }
 
 export interface ModulationConfig {
   carrierFrequency: number; // Hz
+  /** Amplitude da portadora (Ac) */
+  carrierAmplitude?: number;
   modulationIndex: number;
   modulationMode: Modulations;
   spectrumMax?: number; // Hz

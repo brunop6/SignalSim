@@ -43,6 +43,7 @@ export class TransmitterService {
 
     // Acumula contribuição de cada sinal
     for (const signal of signals) {
+      const offset = Number(signal.offset ?? 0);
       const f = Math.max(0, signal.frequency);
 
       for (let i = 0; i < totalSamples; i++) {
@@ -50,16 +51,16 @@ export class TransmitterService {
 
         switch (signal.type) {
           case SignalTypes.SINE:
-            y[i] += signal.amplitude * Math.sin(2 * Math.PI * f * t + signal.phase);
+            y[i] += offset + signal.amplitude * Math.sin(2 * Math.PI * f * t + signal.phase);
             break;
           case SignalTypes.SQUARE:
-            y[i] += signal.amplitude * (Math.sin(2 * Math.PI * f * t + signal.phase) >= 0 ? 1 : -1);
+            y[i] += offset + signal.amplitude * (Math.sin(2 * Math.PI * f * t + signal.phase) >= 0 ? 1 : -1);
             break;
           case SignalTypes.TRIANGLE:
-            y[i] += signal.amplitude * (2 / Math.PI) * Math.asin(Math.sin(2 * Math.PI * f * t + signal.phase));
+            y[i] += offset + signal.amplitude * (2 / Math.PI) * Math.asin(Math.sin(2 * Math.PI * f * t + signal.phase));
             break;
           case SignalTypes.SAWTOOTH:
-            y[i] += signal.amplitude * (2 * (f * t - Math.floor(f * t + 0.5)));
+            y[i] += offset + signal.amplitude * (2 * (f * t - Math.floor(f * t + 0.5)));
             break;
         }
       }
@@ -77,7 +78,7 @@ export class TransmitterService {
    * @param mode Modo de modulação.
    * @returns SignalData com sinal modulado.
    */
-  modulateSignal(message: SignalData, fc: number, fs: number, modulationConst: number, mode: Modulations): SignalData {
+  modulateSignal(message: SignalData, fc: number, fs: number, modulationConst: number, mode: Modulations, carrierAmplitude: number = 1): SignalData {
     if (!message.x.length) {
       return { x: new Float64Array(0), y: new Float64Array(0) };
     }
@@ -86,25 +87,25 @@ export class TransmitterService {
 
     switch (mode) {
       case Modulations.AM_DSB:
-        y = this.modulationService.modulateAM_DSB(message, fc, modulationConst);
+        y = this.modulationService.modulateAM_DSB(message, fc, modulationConst, carrierAmplitude);
         break;
 
       case Modulations.AM_DSB_SC:
-        y = this.modulationService.modulateAM_DSB_SC(message, fc, modulationConst);
+        y = this.modulationService.modulateAM_DSB_SC(message, fc, modulationConst, carrierAmplitude);
         break;
 
       case Modulations.AM_SSB:
-        y = this.modulationService.modulateAM_SSB_USB(message, fc, modulationConst);
+        y = this.modulationService.modulateAM_SSB_USB(message, fc, modulationConst, carrierAmplitude);
         break;
 
       case Modulations.PM:
         const kp = modulationConst;
-        y = this.modulationService.modulatePM(message, fc, kp);
+        y = this.modulationService.modulatePM(message, fc, kp, carrierAmplitude);
         break;
 
       case Modulations.FM:
         const kf = modulationConst;
-        y = this.modulationService.modulateFM(message, fc, fs, kf);
+        y = this.modulationService.modulateFM(message, fc, fs, kf, carrierAmplitude);
         break;
 
       default:

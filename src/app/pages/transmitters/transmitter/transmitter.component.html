@@ -42,6 +42,10 @@
 						Fase (°)
 						<input type="number" step="any" formControlName="phase" />
 					</label>
+					<label>
+						Offset
+						<input type="number" step="any" formControlName="offset" />
+					</label>
 					<button type="button" (click)="removeSignal(i)" [disabled]="signalsForm.length === 1">Remover</button>
 				</div>
 			</ng-container>
@@ -158,6 +162,10 @@
 			<label>
 				Portadora fc (Hz)
 				<input type="number" step="10" formControlName="carrierFrequency" />
+			</label>
+			<label>
+				Amplitude da Portadora (Ac)
+				<input type="number" step="any" formControlName="carrierAmplitude" />
 			</label>
 			<label>
 				Índice m

@@ -64,6 +64,7 @@ export class TransmitterComponent implements OnInit {
       samplingFrequency: [5000, [Validators.required, Validators.min(1)]], // Hz
       signals: this.fb.array([this.createSignalGroup()]),
       carrierFrequency: [1000, [Validators.required, Validators.min(1)]],
+      carrierAmplitude: [1, [Validators.required, Validators.min(0)]],
       modulationIndex: [0.5, [Validators.required, Validators.min(0), Validators.max(1)]],
       modulationMode: [Modulations.AM_DSB, Validators.required],
       filterLow: [0, [Validators.min(0)]],
@@ -104,7 +105,8 @@ export class TransmitterComponent implements OnInit {
         type: [s.type, Validators.required],
         amplitude: [s.amplitude, [Validators.required, Validators.min(0)]],
         frequency: [s.frequency, [Validators.required, Validators.min(0)]],
-        phase: [s.phase]
+        phase: [s.phase],
+        offset: [s.offset ?? 0]
       }));
     }
 
@@ -113,6 +115,7 @@ export class TransmitterComponent implements OnInit {
       duration: c.duration,
       samplingFrequency: c.samplingFrequency,
       carrierFrequency: c.modulation?.carrierFrequency ?? this.form.get('carrierFrequency')?.value,
+      carrierAmplitude: c.modulation?.carrierAmplitude ?? this.form.get('carrierAmplitude')?.value,
       modulationIndex: c.modulation?.modulationIndex ?? this.form.get('modulationIndex')?.value,
       modulationMode: c.modulation?.modulationMode ?? this.form.get('modulationMode')?.value,
       filterLow: c.filter?.lowCutoff ?? this.form.get('filterLow')?.value,
@@ -204,7 +207,8 @@ export class TransmitterComponent implements OnInit {
       type: [SignalTypes.SINE, Validators.required],
       amplitude: [1, [Validators.required, Validators.min(0)]],
       frequency: [10, [Validators.required, Validators.min(0)]],
-      phase: [0]
+      phase: [0],
+      offset: [0]
     });
   }
 
@@ -230,7 +234,8 @@ export class TransmitterComponent implements OnInit {
       type: g.get('type')?.value as SignalTypes,
       amplitude: Number(g.get('amplitude')?.value),
       frequency: Number(g.get('frequency')?.value),
-      phase: Number(g.get('phase')?.value) * Math.PI / 180 // Converte graus para radianos
+      phase: Number(g.get('phase')?.value) * Math.PI / 180, // Converte graus para radianos
+      offset: Number(g.get('offset')?.value) || 0
     }));
     // Gera banda-base e guarda (retorna SignalData)
     this.baseband = this.tx.createSignal(signals, dur, fs);
@@ -271,10 +276,11 @@ export class TransmitterComponent implements OnInit {
       return;
     }
     const fc = Number(this.form.get('carrierFrequency')?.value) || 0;
+    const Ac = Number(this.form.get('carrierAmplitude')?.value) || 1;
     const fs = Number(this.form.get('samplingFrequency')?.value) || 0;
     const mi = Number(this.form.get('modulationIndex')?.value) || 0;
     const mode = this.form.get('modulationMode')?.value as Modulations;
-    this.output = this.tx.modulateSignal(baseForMod, fc, fs, mi, mode);
+    this.output = this.tx.modulateSignal(baseForMod, fc, fs, mi, mode, Ac);
 
     // Calcular espectro do sinal modulado
     if (this.output) {
@@ -291,10 +297,12 @@ export class TransmitterComponent implements OnInit {
             type: g.get('type')?.value as SignalTypes,
             amplitude: Number(g.get('amplitude')?.value),
             frequency: Number(g.get('frequency')?.value),
-            phase: Number(g.get('phase')?.value)
+            phase: Number(g.get('phase')?.value),
+            offset: Number(g.get('offset')?.value) || 0
           })),
           modulation: {
             carrierFrequency: fc,
+            carrierAmplitude: Ac,
             modulationIndex: mi,
             modulationMode: mode,
             spectrumMax: this.requestedSpectrumMax

@@ -27,7 +27,7 @@ export class ModulationService {
    * @param ma Índice de modulação.
    * @returns Sinal modulado (no eixo y).
    */
-  modulateAM_DSB(message: SignalData, fc: number, ma: number): Float64Array {
+  modulateAM_DSB(message: SignalData, fc: number, ma: number, Ac: number = 1): Float64Array {
     const N = message.y.length;
     const out = new Float64Array(N);
     const omegaC = 2 * Math.PI * fc;
@@ -36,7 +36,7 @@ export class ModulationService {
       const t = message.x[i];
       const mt = message.y[i];
 
-      out[i] = (1 + ma * mt) * Math.cos(omegaC * t);
+      out[i] = Ac * (1 + ma * mt) * Math.cos(omegaC * t);
     }
     return out;
   }
@@ -50,7 +50,7 @@ export class ModulationService {
    * @param ma Índice de modulação.
    * @returns Sinal modulado (no eixo y).
    */
-  modulateAM_DSB_SC(message: SignalData, fc: number, ma: number): Float64Array {
+  modulateAM_DSB_SC(message: SignalData, fc: number, ma: number, Ac: number = 1): Float64Array {
     const N = message.y.length;
     const out = new Float64Array(N);
     const omegaC = 2 * Math.PI * fc;
@@ -59,7 +59,7 @@ export class ModulationService {
       const t = message.x[i];
       const mt = message.y[i];
 
-      out[i] = ma * mt * Math.cos(omegaC * t);
+      out[i] = Ac * ma * mt * Math.cos(omegaC * t);
     }
 
     return out;
@@ -74,7 +74,7 @@ export class ModulationService {
    * @param kp Constante de modulação PM.
    * @returns Sinal modulado (no eixo y).
    */
-  modulatePM(m: SignalData, fc: number, kp: number): Float64Array {
+  modulatePM(m: SignalData, fc: number, kp: number, Ac: number = 1): Float64Array {
     const N = m.y.length;
     const out = new Float64Array(N);
     const omegaC = 2 * Math.PI * fc;
@@ -83,7 +83,7 @@ export class ModulationService {
       const t = m.x[i];
       const mt = m.y[i];
 
-      out[i] = Math.cos(omegaC * t + kp * mt);
+      out[i] = Ac * Math.cos(omegaC * t + kp * mt);
     }
     return out;
   }
@@ -98,7 +98,7 @@ export class ModulationService {
    * @param kf Constante de modulação FM.
    * @returns Sinal modulado (no eixo y).
    */
-  modulateFM(m: SignalData, fc: number, fs: number, kf: number): Float64Array {
+  modulateFM(m: SignalData, fc: number, fs: number, kf: number, Ac: number = 1): Float64Array {
     const N = m.y.length;
     const out = new Float64Array(N);
     const omegaC = 2 * Math.PI * fc;
@@ -111,7 +111,7 @@ export class ModulationService {
       sum += mt;
 
       const phase = omegaC * t + kf * sum / fs;
-      out[i] = Math.cos(phase);
+      out[i] = Ac * Math.cos(phase);
     }
 
     return out;
@@ -128,7 +128,7 @@ export class ModulationService {
    * @param ma Índice de modulação
    * @returns Sinal modulado SSB-USB (no eixo y)
    */
-  modulateAM_SSB_USB(message: SignalData, fc: number, ma: number): Float64Array {
+  modulateAM_SSB_USB(message: SignalData, fc: number, ma: number, Ac: number = 1): Float64Array {
     const N = message.x.length;
     const out = new Float64Array(N);
     const omegaC = 2 * Math.PI * fc;
@@ -142,7 +142,7 @@ export class ModulationService {
       const mt = message.y[i];
       const mht = hilbert[i];
 
-      out[i] = ma * (mt * Math.cos(omegaC * t) - mht * Math.sin(omegaC * t));
+      out[i] = Ac * ma * (mt * Math.cos(omegaC * t) - mht * Math.sin(omegaC * t));
     }
 
     return out;
