@@ -4,26 +4,30 @@ import { Router } from '@angular/router';
 import { FirestoreService } from '../../shared/services/firestore.service';
 
 import { TransmitterConfig } from '../../shared/interfaces/transmitter-config';
+import { ChannelConfig } from '../../shared/interfaces/channel';
 
 import { Modulations } from '../../shared/enums/modulations';
 import { SignalTypes } from '../../shared/enums/signal-types.enum';
 
 import { TransmitterCardComponent } from '../../components/transmitter-card/transmitter-card.component';
+import { ChannelCardComponent } from '../../components/channel-card/channel-card.component';
 
 @Component({
   selector: 'app-transmitters',
-  imports: [TransmitterCardComponent],
+  imports: [TransmitterCardComponent, ChannelCardComponent],
   templateUrl: './transmitters.component.html',
   styleUrl: './transmitters.component.scss'
 })
 export class TransmittersComponent {
   transmitters: Array<TransmitterConfig & { id: string }> = [];
+  channels: Array<{ id: string; config: ChannelConfig; data: { x: number[]; y: number[] } }> = [];
 
   private firestore = inject(FirestoreService);
   private router = inject(Router);
 
   constructor() {
     this.loadTransmitters();
+    this.loadChannels();
   }
 
   private async loadTransmitters(): Promise<void> {
@@ -31,6 +35,14 @@ export class TransmittersComponent {
       this.transmitters = await this.firestore.getAllTransmitters();
     } catch (error) {
       console.error('Error loading transmitters:', error);
+    }
+  }
+
+  private async loadChannels(): Promise<void> {
+    try {
+      this.channels = await this.firestore.getAllChannels();
+    } catch (error) {
+      console.error('Error loading channels:', error);
     }
   }
 
@@ -71,8 +83,7 @@ export class TransmittersComponent {
   }
 
   createChannel(): void {
-    // Placeholder para futura navegação/criação de canal
-    console.log('Criar Canal clicado');
+    this.router.navigate(['/channel', 'new']);
   }
 
   private generateId(): string {

@@ -1,0 +1,23 @@
+<div class="channel-card" (click)="open()">
+	<div class="channel-card__header">
+		<h3>Canal <{{ channel.id }}></h3>
+	</div>
+	<div class="channel-card__body">
+		<div>
+			<b>Transmissores:</b>
+			<small>{{ channel.config.transmitterIds.length }}</small>
+		</div>
+		<div>
+			<b>fs:</b>
+			<small>{{ channel.config.samplingFrequency | frequency }}</small>
+		</div>
+		<div>
+			<b>Duração:</b>
+			<small>{{ channel.config.duration.toFixed(3) }} s</small>
+		</div>
+		<div>
+			<b>Filtro:</b>
+			<small>{{ channel.config.filterEnabled ? 'Ativado' : 'Desativado' }}</small>
+		</div>
+	</div>  
+</div>

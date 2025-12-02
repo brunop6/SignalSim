@@ -95,7 +95,7 @@ export class SignalChartComponent implements AfterViewInit, OnChanges {
             title: { display: true, text: 'Amplitude' },
             ticks: { maxTicksLimit: 6 },
             suggestedMin: (this.type === 'frequency-response' || this.type === 'spectrum') ? 0 : -5,
-            suggestedMax: (this.type === 'frequency-response' || this.type === 'spectrum') ? undefined : 5
+            suggestedMax: (this.type === 'frequency-response' || this.type === 'spectrum') ? 2 : 5
           }
         },
         plugins: {

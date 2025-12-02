@@ -157,7 +157,7 @@ export class FourierTransformService {
   computeFrequencyResponse(h: Float64Array, fs: number, nFreqs = 256): SignalData {
     const N = h.length;
     const M = (N - 1) / 2; // centro (assumindo filtro simétrico)
-    
+
     const x = new Float64Array(nFreqs);
     const y = new Float64Array(nFreqs);
 
@@ -182,30 +182,30 @@ export class FourierTransformService {
       return { x: new Float64Array(0), y: new Float64Array(0) };
     }
 
-      const N = signal.y.length;
-    
+    const N = signal.y.length;
+
     // Fazer padding para próxima potência de 2
     const nextPow2 = Math.pow(2, Math.ceil(Math.log2(N)));
     const padded = new Float64Array(nextPow2);
     padded.set(signal.y);
-    
+
     // Aplicar FFT (convert to number[] for FFT input)
     const fftResult = this.fft(Array.from(padded));
     const fftLen = fftResult.length;
-    
+
     // Calcular magnitudes e frequências (apenas metade positiva)
     const halfLen = Math.floor(fftLen / 2) + 1;
     const x = new Float64Array(halfLen);
     const y = new Float64Array(halfLen);
-    
+
     for (let k = 0; k < halfLen; k++) {
       x[k] = k * fs / fftLen;
       const magnitude = Math.sqrt(fftResult[k].real ** 2 + fftResult[k].imag ** 2) / N;
-      
+
       // Dobrar a magnitude para frequências positivas (exceto DC e Nyquist)
       y[k] = (k > 0 && k < fftLen / 2) ? 2 * magnitude : magnitude;
     }
-        
+
     return { x, y }; // Return SignalData
   }
 }

@@ -68,44 +68,88 @@ export class ReceiverComponent implements OnInit, OnDestroy {
     // Atualiza demodulação ao alterar parâmetros
     this.demodForm.valueChanges.subscribe(() => this.updateDemodulation());
 
-    // Obtém o ID do transmissor da query string (?tx=ID)
+    // Obtém o ID do transmissor ou canal da query string (?tx=ID ou ?channel=ID)
     this.routeSub = this.route.queryParams.subscribe((params) => {
-      if (params['tx']) {
-        this.id = params['tx'];
-      } else if (params['ch']) {
-        this.id = params['ch'] || '';
-      }
-      if (!this.id) {
-        this.error = 'ID do receptor não fornecido na URL';
+      const txId = params['tx'];
+      const channelId = params['channel'];
+      
+      if (txId) {
+        this.id = txId;
+        this.subscribeToSignal();
+      } else if (channelId) {
+        this.id = channelId;
+        this.subscribeToChannel();
+      } else {
+        this.error = 'ID do transmissor ou canal não fornecido na URL';
         this.loading = false;
-        return;
       }
-      // Cancela assinatura anterior do firestore, se houver
-      if (this.signalSub) {
-        this.signalSub.unsubscribe();
-        this.signalSub = undefined;
+    });
+  }
+
+  private subscribeToSignal(): void {
+    if (!this.id) return;
+
+    // Cancela assinatura anterior, se houver
+    if (this.signalSub) {
+      this.signalSub.unsubscribe();
+      this.signalSub = undefined;
+    }
+
+    this.loading = true;
+    this.error = '';
+    
+    this.signalSub = this.firestore.subscribeToSignal(this.id).subscribe((signalData) => {
+      if (signalData) {
+        this.signalOutput = signalData as SignalOutput;
+        this.signalData = {
+          x: new Float64Array(this.signalOutput.data.x),
+          y: new Float64Array(this.signalOutput.data.y)
+        };
+        this.updateFilter();
+        this.updateDemodulation();
+      } else {
+        this.signalOutput = null;
+        this.signalData = null;
+        this.filtered = null;
+        this.demodulated = null;
+        this.error = 'Nenhum dado de sinal encontrado para este transmissor';
       }
-      // Inicia nova assinatura no stream do sinal
-      this.loading = true;
-      this.error = '';
-      this.signalSub = this.firestore.subscribeToSignal(this.id).subscribe((signalData) => {
-        if (signalData) {
-          this.signalOutput = signalData as SignalOutput;
-          this.signalData = {
-            x: new Float64Array(this.signalOutput.data.x),
-            y: new Float64Array(this.signalOutput.data.y)
-          };
-          this.updateFilter();
-          this.updateDemodulation();
-        } else {
-          this.signalOutput = null;
-          this.signalData = null;
-          this.filtered = null;
-          this.demodulated = null;
-          this.error = 'Nenhum dado de sinal encontrado para este ID';
-        }
-        this.loading = false;
-      });
+      this.loading = false;
+    });
+  }
+
+  private subscribeToChannel(): void {
+    if (!this.id) return;
+
+    // Cancela assinatura anterior, se houver
+    if (this.signalSub) {
+      this.signalSub.unsubscribe();
+      this.signalSub = undefined;
+    }
+
+    this.loading = true;
+    this.error = '';
+    
+    this.signalSub = this.firestore.subscribeToChannel(this.id).subscribe((channelData) => {
+      if (channelData && channelData['data']) {
+        this.signalOutput = {
+          channelId: this.id,
+          data: channelData['data']
+        };
+        this.signalData = {
+          x: new Float64Array(this.signalOutput.data.x),
+          y: new Float64Array(this.signalOutput.data.y)
+        };
+        this.updateFilter();
+        this.updateDemodulation();
+      } else {
+        this.signalOutput = null;
+        this.signalData = null;
+        this.filtered = null;
+        this.demodulated = null;
+        this.error = 'Nenhum dado encontrado para este canal';
+      }
+      this.loading = false;
     });
   }
 

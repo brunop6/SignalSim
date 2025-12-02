@@ -1,0 +1,48 @@
+.channel-card {
+  background: var(--dark-bg-color);
+  border: 1px solid var(--secondary-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(0, 201, 167, 0.2);
+    transform: translateY(-2px);
+  }
+
+  &__header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--secondary-color);
+
+    h3 {
+      margin: 0;
+      color: var(--primary-color);
+      font-size: 1.25rem;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      b {
+        color: var(--font-color);
+        font-weight: 600;
+      }
+
+      small {
+        color: var(--primary-color);
+        font-weight: 500;
+      }
+    }
+  }
+}

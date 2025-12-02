@@ -91,26 +91,28 @@ export class ModulationService {
   /**
    * Modula um sinal FM.
    * 
-   * s(t) = cos(2πfc t + kf·cumsum(m(t))/fs)
+   * s(t) = Ac * cos(2πfc·t + 2π·kf·∫m(t)dt)
    * @param m Sinal a ser modulado.
    * @param fc Frequência da portadora.
    * @param fs Frequência de amostragem.
-   * @param kf Constante de modulação FM.
+   * @param kf Constante de modulação FM (índice de modulação).
    * @returns Sinal modulado (no eixo y).
    */
   modulateFM(m: SignalData, fc: number, fs: number, kf: number, Ac: number = 1): Float64Array {
     const N = m.y.length;
     const out = new Float64Array(N);
     const omegaC = 2 * Math.PI * fc;
+    const omega_kf = 2 * Math.PI * kf;
 
-    let sum = 0; // cumsum(m(t))
+    // Integral do sinal: cumsum(m(t)) / fs
+    let integral = 0;
     for (let i = 0; i < N; i++) {
       const t = m.x[i];
       const mt = m.y[i];
 
-      sum += mt;
+      integral += mt / fs;
 
-      const phase = omegaC * t + kf * sum / fs;
+      const phase = omegaC * t + omega_kf * integral;
       out[i] = Ac * Math.cos(phase);
     }
 
@@ -126,6 +128,7 @@ export class ModulationService {
    * @param message Sinal a ser modulado
    * @param fc Frequência da portadora
    * @param ma Índice de modulação
+   * @param Ac Amplitude da portadora                               
    * @returns Sinal modulado SSB-USB (no eixo y)
    */
   modulateAM_SSB_USB(message: SignalData, fc: number, ma: number, Ac: number = 1): Float64Array {
@@ -143,6 +146,7 @@ export class ModulationService {
       const mht = hilbert[i];
 
       out[i] = Ac * ma * (mt * Math.cos(omegaC * t) - mht * Math.sin(omegaC * t));
+      //out[i] = Ac * ma * ((mt-mht) * Math.cos(omegaC * t));
     }
 
     return out;
@@ -276,9 +280,9 @@ export class ModulationService {
   }
 
   /**
-   * Demodula um sinal PM usando discriminador de fase.
+   * Demodula um sinal PM seguindo o método do discriminador de fase.
+   * Extrai a fase instantânea usando transformada de Hilbert e remove a componente da portadora.
    * 
-   * m(t) = [fase instantânea - 2πfc*t] / kp
    * @param modulated Sinal modulado PM.
    * @param fc Frequência da portadora.
    * @param fs Frequência de amostragem.
@@ -287,59 +291,91 @@ export class ModulationService {
    */
   demodulatePM(modulated: SignalData, fc: number, fs: number, kp: number): Float64Array {
     const N = modulated.y.length;
-    const out = new Float64Array(N);
-    const omegaC = 2 * Math.PI * fc;
-
-    // Calcular fase instantânea usando arctan da transformada de Hilbert
+    
+    // 1. Extração da fase instantânea usando transformada de Hilbert
     const hilbert = this.hilbertTransform(modulated);
-
+    const instantaneousPhase = new Float64Array(N);
+    
+    for (let i = 0; i < N; i++) {
+      instantaneousPhase[i] = Math.atan2(hilbert[i], modulated.y[i]);
+    }
+    
+    // Unwrap da fase (remover descontinuidades de 2π)
+    this.unwrapPhase(instantaneousPhase);
+    
+    // 2. Remoção da componente da portadora
+    const omegaC = 2 * Math.PI * fc;
+    const demodulated = new Float64Array(N);
+    
     for (let i = 0; i < N; i++) {
       const t = modulated.x[i];
-      // Fase instantânea
-      const phase = Math.atan2(hilbert[i], modulated.y[i]);
-      // Remover fase da portadora e normalizar
-      out[i] = (phase - omegaC * t) / kp;
+      demodulated[i] = (instantaneousPhase[i] - omegaC * t) / kp;
     }
-
+    
+    // 3. Remover componente DC
+    const mean = demodulated.reduce((sum: number, val: number) => sum + val, 0) / N;
+    const out = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      out[i] = demodulated[i] - mean;
+    }
+    
     return out;
   }
 
   /**
    * Demodula um sinal FM usando discriminador de frequência.
+   * Calcula a frequência instantânea através da derivada da fase.
    * 
-   * m(t) = [d(fase)/dt - 2πfc] * fs / kf
    * @param modulated Sinal modulado FM.
    * @param fc Frequência da portadora.
    * @param fs Frequência de amostragem.
-   * @param kf Constante de modulação FM.
+   * @param kf Constante de modulação FM (índice de modulação).
    * @returns Sinal demodulado (no eixo y).
    */
   demodulateFM(modulated: SignalData, fc: number, fs: number, kf: number): Float64Array {
     const N = modulated.y.length;
-    const out = new Float64Array(N);
-    const omegaC = 2 * Math.PI * fc;
-
-    // Calcular fase instantânea
+    
+    // 1. Extrair fase instantânea usando transformada de Hilbert
     const hilbert = this.hilbertTransform(modulated);
-    const phase = new Float64Array(N);
-
+    const instantaneousPhase = new Float64Array(N);
+    
     for (let i = 0; i < N; i++) {
-      phase[i] = Math.atan2(hilbert[i], modulated.y[i]);
+      instantaneousPhase[i] = Math.atan2(hilbert[i], modulated.y[i]);
     }
-
-    // Derivada da fase = frequência instantânea
-    // Usar diferenças finitas
-    for (let i = 1; i < N - 1; i++) {
-      // Derivada central
-      const dPhase = (phase[i + 1] - phase[i - 1]) / 2;
-      // Normalizar e remover portadora
-      out[i] = (dPhase * fs / (2 * Math.PI) - fc) * fs / kf;
+    
+    // 2. Unwrap da fase (remover descontinuidades de 2π)
+    this.unwrapPhase(instantaneousPhase);
+    
+    // 3. Calcular frequência instantânea (derivada da fase)
+    const instantaneousFreq = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      if (i === 0) {
+        instantaneousFreq[i] = (instantaneousPhase[1] - instantaneousPhase[0]) * fs / (2 * Math.PI);
+      } else if (i === N - 1) {
+        instantaneousFreq[i] = (instantaneousPhase[i] - instantaneousPhase[i - 1]) * fs / (2 * Math.PI);
+      } else {
+        // Diferença central
+        instantaneousFreq[i] = (instantaneousPhase[i + 1] - instantaneousPhase[i - 1]) * fs / (4 * Math.PI);
+      }
     }
-
-    // Primeira e última amostra (diferenças forward/backward)
-    out[0] = (phase[1] - phase[0]) * fs / (2 * Math.PI * kf);
-    out[N - 1] = (phase[N - 1] - phase[N - 2]) * fs / (2 * Math.PI * kf);
-
+    
+    // 4. Remover frequência da portadora e escalar pelo índice de modulação
+    // Na modulação: phase = 2π·fc·t + 2π·kf·∫m(t)dt
+    // Derivada da fase: dφ/dt = 2π·fc + 2π·kf·m(t)
+    // Frequência instantânea: f_inst = dφ/dt/(2π) = fc + kf·m(t)
+    // Portanto: m(t) = (f_inst - fc) / kf
+    const demodulated = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      demodulated[i] = (instantaneousFreq[i] - fc) / kf;
+    }
+    
+    // 5. Remover componente DC
+    const mean = demodulated.reduce((sum: number, val: number) => sum + val, 0) / N;
+    const out = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      out[i] = demodulated[i] - mean;
+    }
+    
     return out;
   }
 
@@ -365,5 +401,88 @@ export class ModulationService {
     }
 
     return out;
+  }
+
+  /**
+   * Unwrap de fase: remove descontinuidades de 2π.
+   * Modifica o array in-place.
+   * 
+   * @param phase Array de fase a ser unwrapped
+   */
+  private unwrapPhase(phase: Float64Array): void {
+    const threshold = Math.PI;
+    for (let i = 1; i < phase.length; i++) {
+      const diff = phase[i] - phase[i - 1];
+      if (diff > threshold) {
+        // Descontinuidade positiva, subtrair 2π de todos os seguintes
+        for (let j = i; j < phase.length; j++) {
+          phase[j] -= 2 * Math.PI;
+        }
+      } else if (diff < -threshold) {
+        // Descontinuidade negativa, adicionar 2π a todos os seguintes
+        for (let j = i; j < phase.length; j++) {
+          phase[j] += 2 * Math.PI;
+        }
+      }
+    }
+  }
+
+  /**
+   * Implementação de filtro passa-baixas Butterworth com filtfilt.
+   * Aplica o filtro nos dois sentidos (forward e backward) para fase zero.
+   * 
+   * @param signal Sinal de entrada
+   * @param fs Frequência de amostragem
+   * @param cutoffFreq Frequência de corte
+   * @param order Ordem do filtro
+   * @returns Sinal filtrado
+   */
+  private butterworthLowPass(signal: Float64Array, fs: number, cutoffFreq: number, order: number): Float64Array {
+    const N = signal.length;
+    const nyquist = fs / 2;
+    const normalizedCutoff = Math.min(cutoffFreq / nyquist, 0.99);
+    
+    // Proteção contra frequências inválidas
+    if (normalizedCutoff <= 0 || normalizedCutoff >= 1) {
+      return new Float64Array(signal);
+    }
+    
+    // Design do filtro Butterworth de ordem 5
+    // Usando transformação bilinear: w = tan(π * fc / fs)
+    const wc = Math.tan(Math.PI * normalizedCutoff);
+    
+    // Para ordem 5, usamos um filtro IIR simplificado
+    // Coeficientes aproximados para Butterworth de 1ª ordem
+    const a0 = 1 + wc;
+    const b0 = wc / a0;
+    const b1 = wc / a0;
+    const a1 = (wc - 1) / a0;
+    
+    // Aplicar filtro forward-backward (filtfilt)
+    let y = new Float64Array(signal);
+    
+    // Forward pass
+    const z1Forward = new Float64Array(order);
+    for (let n = 0; n < N; n++) {
+      const x = y[n];
+      for (let i = 0; i < order; i++) {
+        const yn = b0 * x + z1Forward[i];
+        z1Forward[i] = b1 * x - a1 * yn;
+        y[n] = yn;
+      }
+    }
+    
+    // Backward pass (reverso)
+    const z1Backward = new Float64Array(order);
+    for (let n = N - 1; n >= 0; n--) {
+      const x = y[n];
+      for (let i = 0; i < order; i++) {
+        const yn = b0 * x + z1Backward[i];
+        z1Backward[i] = b1 * x - a1 * yn;
+        y[n] = yn;
+      }
+    }
+    
+    return y;
   }
 }

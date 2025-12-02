@@ -6,17 +6,21 @@
 		</button>
 	</div>
 
-	<div class="qr-modal" *ngIf="showQrCode">
-		<div class="qr-content">
-			<h3>Escaneie para conectar um receptor</h3>
-			<div class="qr-placeholder">
-				<a *ngIf="showQrCode && qrCodeDataUrl" [href]="transmitterUrl" target="_blank" rel="noopener">
-					<img [src]="qrCodeDataUrl" alt="QR Code" />
-				</a>
+	@if (showQrCode) {
+		<div class="qr-modal">
+			<div class="qr-content">
+				<h3>Escaneie para conectar um receptor</h3>
+				<div class="qr-placeholder">
+					@if (showQrCode && qrCodeDataUrl) {
+						<a [href]="transmitterUrl" target="_blank" rel="noopener">
+							<img [src]="qrCodeDataUrl" alt="QR Code" />
+						</a>
+					}
+				</div>
+				<button type="button" (click)="showQrCode = false">Fechar</button>
 			</div>
-			<button type="button" (click)="showQrCode = false">Fechar</button>
 		</div>
-	</div>
+	}
 
 	<!-- 1) Sinal -->
 	<details open class="nb-section">
@@ -30,22 +34,22 @@
 							<option *ngFor="let type of signalTypes" [value]="type">{{ type }}</option>
 						</select>
 					</label>
-					<label>
-						Amplitude
-						<input type="number" step="any" formControlName="amplitude" />
-					</label>
-					<label>
-						f (Hz)
-						<input type="number" step="any" formControlName="frequency" />
-					</label>
-					<label>
-						Fase (°)
-						<input type="number" step="any" formControlName="phase" />
-					</label>
-					<label>
-						Offset
-						<input type="number" step="any" formControlName="offset" />
-					</label>
+				<label>
+					Amplitude
+					<input type="number" step="any" formControlName="amplitude" />
+				</label>
+				<label>
+					f (Hz)
+					<input type="number" step="any" formControlName="frequency" />
+				</label>
+				<label>
+					Fase (°)
+					<input type="number" step="any" formControlName="phase" />
+				</label>
+				<label>
+					Offset
+					<input type="number" step="any" formControlName="offset" />
+				</label>
 					<button type="button" (click)="removeSignal(i)" [disabled]="signalsForm.length === 1">Remover</button>
 				</div>
 			</ng-container>
@@ -70,10 +74,15 @@
 				<button type="submit">Gerar Sinal</button>
 			</form>
 			<div class="info-block">
-				<span *ngIf="fs && (fs < requiredFsForModulation)" class="warn-text">
-					Atenção: fs ({{ fs | number:'1.0-2' }}) < 2×(fc+fmax) ({{ requiredFsForModulation | number:'1.0-2' }}) — pode
-						ocorrer aliasing na modulação. </span>
-						<div *ngIf="fs && form.get('duration')?.value">Amostras previstas: <b>{{ expectedSamples }}</b></div>
+				@if (fs && (fs < requiredFsForModulation)) {
+					<span class="warn-text">
+						Atenção: fs ({{ fs | number:'1.0-2' }}) < 2×(fc+fmax) ({{ requiredFsForModulation | number:'1.0-2' }}) — pode
+							ocorrer aliasing na modulação.
+					</span>
+				}
+				@if (fs && form.get('duration')?.value) {
+					<div>Amostras previstas: <b>{{ expectedSamples }}</b></div>
+				}
 			</div>
 		</details>
 
@@ -121,10 +130,12 @@
 
 		</form>
 
-		<span *ngIf="filterEnabled && filterNyquistViolated" class="warn-text">
-			Atenção: fHigh ({{ filterHigh | number:'1.0-2' }}) ≥ fs/2 ({{ (fs/2) | number:'1.0-2' }}) — ajuste a banda do
-			filtro.
-		</span>
+		@if (filterEnabled && filterNyquistViolated) {
+			<span class="warn-text">
+				Atenção: fHigh ({{ filterHigh | number:'1.0-2' }}) ≥ fs/2 ({{ (fs/2) | number:'1.0-2' }}) — ajuste a banda do
+				filtro.
+			</span>
+		}
 
 		<!-- 2.1) Gráfico de Resposta em Frequência do Filtro -->
 		<details open class="nb-section">
@@ -135,23 +146,29 @@
 					<input type="number" step="any" formControlName="freqRespMax" />
 				</label>
 				<div class="info-block">
-					<span *ngIf="freqRespMaxExceeded" class="warn-text">
-						Atenção: frequência solicitada > fs/2 ({{ (fs/2) | number:'1.0-2' }}). Limitando em fs/2.
-					</span>
+					@if (freqRespMaxExceeded) {
+						<span class="warn-text">
+							Atenção: frequência solicitada > fs/2 ({{ (fs/2) | number:'1.0-2' }}). Limitando em fs/2.
+						</span>
+					}
 				</div>
 			</form>
-			<div class="chart-wrap" *ngIf="filterEnabled && freqResponse">
-				<app-signal-chart [data]="freqResponse" [type]="'frequency-response'" [xMax]="clampedFreqRespMax"
-					title="Resposta em Frequência do Filtro (|H(f)|)"></app-signal-chart>
-			</div>
+			@if (filterEnabled && freqResponse) {
+				<div class="chart-wrap">
+					<app-signal-chart [data]="freqResponse" [type]="'frequency-response'" [xMax]="clampedFreqRespMax"
+						title="Resposta em Frequência do Filtro (|H(f)|)"></app-signal-chart>
+				</div>
+			}
 		</details>
 
 		<!-- 2.2) Gráfico do Sinal Banda Base Filtrado -->
 		<details class="nb-section">
 			<summary class="nb-heading"><b>2.2) Gráfico do Sinal Banda Base Filtrado</b></summary>
-			<div class="chart-wrap" *ngIf="filtered">
-				<app-signal-chart [data]="filtered" title="Banda-base Filtrada (Passa-Faixa)"></app-signal-chart>
-			</div>
+			@if (filtered) {
+				<div class="chart-wrap">
+					<app-signal-chart [data]="filtered" title="Banda-base Filtrada (Passa-Faixa)"></app-signal-chart>
+				</div>
+			}
 		</details>
 	</details>
 
@@ -174,7 +191,9 @@
 			<label>
 				Modulação
 				<select formControlName="modulationMode">
-					<option *ngFor="let m of modulationModes" [value]="m">{{ m }}</option>
+					@for (m of modulationModes; track m) {
+						<option [value]="m">{{ m }}</option>
+					}
 				</select>
 			</label>
 			<button type="submit">Aplicar</button>
@@ -198,15 +217,19 @@
 					<input type="number" step="any" formControlName="spectrumMax" />
 				</label>
 				<div class="info-block">
-					<span *ngIf="spectrumMaxExceeded" class="warn-text">
-						Atenção: frequência solicitada > fs/2 ({{ (fs/2) | number:'1.0-2' }}). Limitando em fs/2.
-					</span>
+					@if (spectrumMaxExceeded) {
+						<span class="warn-text">
+							Atenção: frequência solicitada > fs/2 ({{ (fs/2) | number:'1.0-2' }}). Limitando em fs/2.
+						</span>
+					}
 				</div>
 			</form>
-			<div class="chart-wrap" *ngIf="spectrum">
-				<app-signal-chart [data]="spectrum" [type]="'spectrum'" [xMax]="clampedSpectrumMax"
-					title="Espectro de Magnitude"></app-signal-chart>
-			</div>
+			@if (spectrum) {
+				<div class="chart-wrap">
+					<app-signal-chart [data]="spectrum" [type]="'spectrum'" [xMax]="clampedSpectrumMax"
+						title="Espectro de Magnitude"></app-signal-chart>
+				</div>
+			}
 		</details>
 	</details>
 

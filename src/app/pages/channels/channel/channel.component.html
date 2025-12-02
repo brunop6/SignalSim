@@ -1,0 +1,197 @@
+<section class="container">
+  <header class="header">
+    <h1>Canal {{ channelId ? '<' + channelId + '>' : 'Novo' }}</h1>
+    @if (channelId) {
+      <button type="button" class="qr-btn" (click)="showQrCode = !showQrCode">
+        {{ showQrCode ? 'Fechar QR Code' : 'Conectar Receptor (QR Code)' }}
+      </button>
+    }
+  </header>
+
+  @if (showQrCode) {
+    <div class="qr-modal">
+      <div class="qr-content">
+        <h3>Escaneie para conectar um receptor</h3>
+        <div class="qr-placeholder">
+          @if (showQrCode && qrCodeDataUrl) {
+            <a [href]="channelUrl" target="_blank" rel="noopener">
+              <img [src]="qrCodeDataUrl" alt="QR Code" />
+            </a>
+          }
+        </div>
+        <button type="button" (click)="showQrCode = false">Fechar</button>
+      </div>
+    </div>
+  }
+
+  <form [formGroup]="form">
+    <!-- Seleção de Transmissores -->
+    <section class="section">
+      <h2>Selecionar Transmissores</h2>
+      <div class="transmitter-selection">
+        @for (tx of selectedTransmitters; track tx.id) {
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              [checked]="tx.selected"
+              (change)="toggleTransmitter(tx.id)"
+            />
+            {{ getTransmitterName(tx.id) }}
+          </label>
+        }
+      </div>
+      
+      @if (validationMessage) {
+        <p [class.warn-text]="!canMultiplex" [class.success-text]="canMultiplex">
+          {{ validationMessage }}
+        </p>
+      }
+    </section>
+
+    <!-- Configuração do Canal -->
+    <section class="section">
+      <h2>Configuração do Canal</h2>
+      <div class="form-row">
+        <label>
+          Duração (s)
+          <input 
+            type="number" 
+            formControlName="duration"
+            step="0.001"
+            (change)="generateMultiplexedSignal()"
+          />
+        </label>
+        <label>
+          Taxa de Amostragem (Hz)
+          <input 
+            type="number" 
+            formControlName="samplingFrequency"
+            [readonly]="true"
+            title="Ajustada automaticamente baseado nos sinais selecionados"
+          />
+        </label>
+      </div>
+    </section>
+
+    <!-- Sinal Multiplexado -->
+    @if (multiplexedSignal) {
+      <section class="section">
+        <h2>Sinal Multiplexado</h2>
+        <app-signal-chart 
+          [data]="multiplexedSignal"
+          title="Sinal no Tempo"
+          xLabel="Tempo (s)"
+          yLabel="Amplitude"
+        />
+      </section>
+    }
+
+    <!-- Espectro -->
+    @if (spectrum) {
+      <section class="section">
+        <h2>Espectro de Frequência</h2>
+        <div class="form-row">
+          <label>
+            Frequência Máxima (Hz)
+            <input 
+              type="number" 
+              formControlName="spectrumMax"
+              placeholder="fs/2"
+              (change)="updateSpectrum()"
+            />
+          </label>
+        </div>
+        <app-signal-chart 
+          [data]="spectrum"
+          title="Espectro"
+          xLabel="Frequência (Hz)"
+          yLabel="Magnitude"
+          type="spectrum"
+        />
+      </section>
+    }
+
+    <!-- Filtro -->
+    <section class="section">
+      <div class="section-header">
+        <h2>Filtro Passa-Faixa</h2>
+        <button 
+          type="button" 
+          (click)="toggleFilter()"
+          [class.primary]="!filterEnabled"
+          [class.accent]="filterEnabled"
+        >
+          {{ filterEnabled ? 'Desabilitar' : 'Habilitar' }}
+        </button>
+      </div>
+
+      @if (filterEnabled) {
+        <div class="form-row">
+          <label>
+            Frequência de Corte Inferior (Hz)
+            <input 
+              type="number" 
+              formControlName="filterLow"
+              (change)="updateFilterResponse(); applyFilter(); updateSpectrum()"
+            />
+          </label>
+          <label>
+            Frequência de Corte Superior (Hz)
+            <input 
+              type="number" 
+              formControlName="filterHigh"
+              (change)="updateFilterResponse(); applyFilter(); updateSpectrum()"
+            />
+          </label>
+          <label>
+            Ordem do Filtro
+            <input 
+              type="number" 
+              formControlName="filterOrder"
+              (change)="updateFilterResponse(); applyFilter(); updateSpectrum()"
+            />
+          </label>
+          <label>
+            Frequência Máxima (Hz)
+            <input 
+              type="number" 
+              formControlName="freqRespMax"
+              placeholder="fs/2"
+              (change)="updateFilterResponse()"
+            />
+          </label>
+        </div>
+
+        @if (freqResponse) {
+          <app-signal-chart 
+            [data]="freqResponse"
+            title="Resposta em Frequência"
+            xLabel="Frequência (Hz)"
+            yLabel="Ganho"
+          />
+        }
+
+        @if (filteredSignal) {
+          <app-signal-chart 
+            [data]="filteredSignal"
+            title="Sinal Filtrado"
+            xLabel="Tempo (s)"
+            yLabel="Amplitude"
+          />
+        }
+      }
+    </section>
+
+    <!-- Botão Transmitir -->
+    <div class="actions">
+      <button 
+        type="button" 
+        class="primary" 
+        (click)="transmit()"
+        [disabled]="!canMultiplex"
+      >
+        Transmitir
+      </button>
+    </div>
+  </form>
+</section>

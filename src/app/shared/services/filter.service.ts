@@ -71,9 +71,9 @@ export class FilterService {
     // h_bp = h_lp(fc2) - h_lp(fc1)
     for (let n = 0; n < N; n++) {
       const k = n - M;
-      const h_lp2 = 2 * fc2 * this.sinc(2 * fc2 * k);
-      const h_lp1 = 2 * fc1 * this.sinc(2 * fc1 * k);
-      h[n] = (h_lp2 - h_lp1) * w[n];
+      const h_lp1 = 2 * fc1 * this.sinc(2 * fc1 * k); // low-pass
+      const h_lp2 = 2 * fc2 * this.sinc(2 * fc2 * k); // high-pass
+      h[n] = (h_lp2 - h_lp1) * w[n]; 
     }
 
     // Normalização de ganho em frequência (aprox. unity no meio da banda)
@@ -97,7 +97,7 @@ export class FilterService {
   }
 
   /**
-   * Função sinc: sinc(x) = sin(pi x) / (pi x), com sinc(0)=1
+   * Função sinc normalizada: sinc(x) = sin(pi x) / (pi x), com sinc(0)=1
    * @param x Valor de entrada
    * @returns Valor da função sinc
    */
