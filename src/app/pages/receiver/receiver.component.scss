@@ -1,17 +1,15 @@
+@use '../../../styles.scss' as styles;
+
 .receiver-container {
   padding: 2rem;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: grid;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .receiver-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--secondary-color);
+  @include styles.page-header;
 
   h1 {
     margin: 0;
@@ -36,15 +34,15 @@
   padding: 3rem;
   font-size: 1.1rem;
   color: var(--secondary-color);
-  background: rgba(0, 112, 243, 0.05);
+  background: var(--secondary-bg);
   border: 1px solid var(--secondary-color);
-  border-radius: 8px;
+  border-radius: var(--border-radius);
 }
 
 .error {
-  background: rgba(255, 64, 129, 0.1);
+  background: var(--accent-hover-color);
   border: 1px solid var(--accent-color);
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   padding: 1.5rem;
   margin: 2rem 0;
 
@@ -58,105 +56,131 @@
 .signal-section {
   margin-top: 1rem;
 
-  h2, h3 {
+  h2,
+  h3 {
     font-size: 1.5rem;
     color: var(--primary-color);
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--secondary-color);
-  }
 
-  h3 {
-    font-size: 1.2rem;
-    margin-top: 2rem;
+    &:is(h3) {
+      font-size: 1.2rem;
+      margin-top: 2rem;
+    }
   }
 
   .nb-heading {
     cursor: pointer;
   }
 
-  .status-on {
-    color: var(--primary-color);
-  }
-
-  .status-off {
-    color: var(--accent-color);
-  }
-
   .nb-section {
-    margin-top: 1rem;
-    padding: 1rem;
-    border: 1px solid rgba(0, 201, 167, 0.1);
-    border-radius: 8px;
-    background: rgba(0, 201, 167, 0.02);
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--primary-border);
+    border-radius: var(--border-radius);
+    background: var(--primary-bg);
   }
 
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.75rem 1rem;
-    align-items: end;
-    margin: 1rem 0;
+  .duration-form {
+    padding: 1.5rem;
+    border: 1px solid var(--primary-border);
+    border-radius: var(--border-radius);
+    background: var(--primary-bg);
+    margin-bottom: 1.5rem;
 
-    .signal-row {
-      width: 100%;
+    .form-row {
       display: flex;
-      flex-direction: row;
-      align-items: end;
-      gap: 0.5rem;
+      gap: 1rem;
+      align-items: flex-end;
 
       label {
-        display: grid;
-        gap: 0.25rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
         font-weight: 500;
-        width: 100%;
+      }
+
+      button {
+        padding: 0.5rem 1.5rem;
+        white-space: nowrap;
       }
     }
   }
 
-  .demod-form {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.75rem 1rem;
-    align-items: end;
-    margin: 2rem 0;
-    padding: 1.5rem;
-    border: 1px solid rgba(0, 112, 243, 0.2);
-    border-radius: 8px;
-    background: rgba(0, 112, 243, 0.05);
+  .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1rem 0;
 
-    label {
+    .signal-row {
       display: grid;
-      gap: 0.25rem;
-      font-weight: 500;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      width: 100%;
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        font-weight: 500;
+      }
+    }
+
+    button.apply-btn {
+      width: auto;
+      padding: 0.5rem 2rem;
+      align-self: flex-start;
     }
   }
 
-  .info-block {
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
+  .demod-form {
+    @include styles.form-grid(200px);
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    border: 1px solid var(--secondary-border);
+    border-radius: var(--border-radius);
+    background: var(--secondary-bg);
+
+    h3 {
+      grid-column: 1 / -1;
+      margin: 0 0 0.5rem 0;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-weight: 500;
+    }
+
+    button.apply-btn {
+      padding: 0.5rem 2rem;
+      white-space: nowrap;
+      width: fit-content;
+    }
   }
 
   .chart-wrap {
     width: 100%;
-    height: 60vh; /* mobile-first: ocupar boa parte da tela */
-    min-height: 320px;
-    border-radius: 8px;
+    height: 500px;
+    min-height: 400px;
+    border-radius: var(--border-radius);
     box-shadow: 0 2px 8px rgba(0, 201, 167, 0.2);
-    padding: 0.5rem;
-    background: rgba(0, 201, 167, 0.02);
-    border: 1px solid rgba(0, 201, 167, 0.1);
+    padding: 1rem;
+    background: var(--primary-bg);
+    border: 1px solid var(--primary-border);
     margin-top: 1rem;
 
-    /* Garanta que o componente e o canvas ocupem toda a área */
-    app-signal-chart {
+    app-signal-chart,
+    .chart-container {
       display: block;
       width: 100%;
       height: 100%;
     }
-    .chart-container {
-      height: 100%;
-    }
+
     canvas {
       width: 100% !important;
       height: 100% !important;
@@ -165,10 +189,36 @@
 }
 
 /* Responsividade */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .receiver-container {
     padding: 1rem;
+    gap: 1rem;
   }
+
+  .signal-section {
+    .duration-form .form-row {
+      flex-direction: column;
+      align-items: stretch;
+
+      button {
+        width: 100%;
+      }
+    }
+
+    .form-grid .signal-row {
+      grid-template-columns: 1fr;
+    }
+
+    .demod-form {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-wrap {
+      height: 400px;
+      min-height: 300px;
+    }
+  }
+
   .receiver-header {
     flex-direction: column;
     align-items: flex-start;
@@ -176,16 +226,27 @@
   }
 }
 
-@media (min-width: 640px) and (max-width: 1023px) {
-  .signal-section .chart-wrap {
-    height: 55vh;
-    min-height: 360px;
+@media (min-width: 769px) and (max-width: 1200px) {
+  .signal-section {
+    .form-grid .signal-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .demod-form {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chart-wrap {
+      height: 450px;
+    }
   }
 }
 
-@media (min-width: 1024px) {
-  .signal-section .chart-wrap {
-    height: 420px; /* telas grandes usam altura fixa confortável */
+@media (min-width: 1201px) {
+  .signal-section {
+    .chart-wrap {
+      height: 500px;
+    }
   }
 }
 

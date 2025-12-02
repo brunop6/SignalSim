@@ -1,18 +1,76 @@
 /* You can add global styles to this file, and also import other style files */
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Orbitron:wght@400..900&display=swap');
 
-
+// CSS Variables
 :root {
   --primary-color: #00C9A7;
-  --primary-hover-color: rgba(0, 201, 167, 0.1);;
+  --primary-hover-color: rgba(0, 201, 167, 0.1);
+  --primary-bg: rgba(0, 201, 167, 0.05);
+  --primary-border: rgba(0, 201, 167, 0.2);
   --secondary-color: #0070F3;
+  --secondary-bg: rgba(0, 112, 243, 0.05);
+  --secondary-border: rgba(0, 112, 243, 0.2);
   --dark-bg-color: #111827;
-  --dark-bg-hover-color: rgba(0, 112, 243, 0.05);
   --font-color: #F9FAFB;
   --accent-color: #FF4081;
   --accent-hover-color: rgba(255, 64, 129, 0.1);
   --gradient: linear-gradient(90deg, #00C9A7 0%, #9100FE 100%);
   --warning-text-color: #b91c1c;
+  --border-radius: 8px;
+  --transition: all 0.2s ease-in-out;
+}
+
+// Mixins
+@mixin card {
+  border: 1px solid var(--secondary-color);
+  border-radius: var(--border-radius);
+  background: var(--dark-bg-color);
+  transition: var(--transition);
+}
+
+@mixin card-hover {
+  &:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 6px var(--primary-color);
+    background-color: var(--primary-hover-color);
+  }
+}
+
+@mixin section {
+  padding: 1.5rem;
+  border: 1px solid var(--secondary-color);
+  border-radius: var(--border-radius);
+  background: var(--secondary-bg);
+  margin-bottom: 2rem;
+}
+
+@mixin page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--secondary-color);
+  margin-bottom: 2rem;
+}
+
+@mixin qr-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+@mixin form-grid($min-width: 200px) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax($min-width, 1fr));
+  gap: 1rem;
+  align-items: end;
 }
 
 * {
@@ -55,18 +113,19 @@ input,
 select,
 button, 
 option {
-  padding: 0.4rem 0.5rem;
+  padding: 0.6rem 0.75rem;
   background: var(--dark-bg-color);
   border: 1px solid var(--secondary-color);
   border-radius: 4px;
   transition: all 0.2s ease-in-out;
+  font-size: 0.95rem;
 
   &:focus {
     outline: none;
     box-shadow: 0 0 6px var(--primary-color);
   }
 
-  &:hover {
+  &:hover:not(:disabled) {
     cursor: pointer;
     border-color: var(--primary-color);
     box-shadow: 0 0 6px var(--primary-color);
@@ -79,18 +138,151 @@ option {
   }
 }
 
+button {
+  font-weight: 600;
+  
+  &.apply-btn,
+  &.primary {
+    background: var(--primary-color);
+    color: var(--dark-bg-color);
+    border-color: var(--primary-color);
+
+    &:hover:not(:disabled) {
+      background: var(--primary-hover-color);
+      color: var(--primary-color);
+      box-shadow: 0 0 8px var(--primary-color);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &.accent {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+
+    &:hover:not(:disabled) {
+      background: var(--accent-hover-color);
+      color: var(--accent-color);
+    }
+  }
+
+  &.delete-btn {
+    background-color: var(--accent-color);
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: var(--accent-hover-color);
+      color: var(--warning-text-color);
+      box-shadow: 0 0 6px var(--warning-text-color);
+      border-color: var(--warning-text-color);
+    }
+  }
+
+  &.qr-btn {
+    background: var(--primary-color);
+    color: var(--dark-bg-color);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: var(--transition);
+
+    &:hover {
+      background: var(--secondary-color);
+      transform: scale(1.05);
+    }
+  }
+}
+
+// Utility classes
+.warn-text,
+.success-text {
+  font-weight: 500;
+}
+
 .warn-text {
   color: var(--accent-color);
 }
 
-.delete-btn {
-  background-color: var(--accent-color);
-  color: white;
+.success-text {
+  color: var(--primary-color);
+}
 
-  &:hover {
-    background-color: var(--accent-hover-color);
-    color: var(--warning-text-color);
-    box-shadow: 0 0 6px var(--warning-text-color);
-    border-color: var(--warning-text-color);
+.status-on {
+  color: var(--primary-color);
+}
+
+.status-off {
+  color: var(--accent-color);
+}
+
+.info-block {
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+// QR Modal (shared component)
+.qr-modal {
+  @include qr-modal;
+
+  .qr-content {
+    background: var(--dark-bg-color);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    border: 2px solid var(--primary-color);
+    max-width: 400px;
+    text-align: center;
+
+    h3 {
+      margin-top: 0;
+      color: var(--primary-color);
+    }
+
+    .qr-placeholder {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px dashed var(--secondary-color);
+      padding: 3rem 2rem;
+      margin: 1.5rem 0;
+      border-radius: var(--border-radius);
+
+      img {
+        border-radius: 4px;
+      }
+
+      p {
+        margin: 0;
+        color: var(--font-color);
+        font-size: 1rem;
+      }
+
+      small {
+        display: block;
+        margin-top: 1rem;
+        color: var(--secondary-color);
+        font-size: 0.85rem;
+        word-break: break-all;
+      }
+    }
+
+    button {
+      background: var(--secondary-color);
+      color: var(--font-color);
+      border: none;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 1rem;
+
+      &:hover {
+        background: var(--primary-color);
+        color: var(--dark-bg-color);
+      }
+    }
   }
 }

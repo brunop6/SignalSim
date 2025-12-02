@@ -36,6 +36,7 @@ export class ReceiverComponent implements OnInit, OnDestroy {
 
   preFilterEnabled = false;
   filterEnabled = false;
+  durationForm!: FormGroup;
   demodForm!: FormGroup;
   preFilterForm!: FormGroup;
   filterForm!: FormGroup;
@@ -51,6 +52,11 @@ export class ReceiverComponent implements OnInit, OnDestroy {
   private signalSub?: any;
 
   ngOnInit(): void {
+    // Formulário de duração
+    this.durationForm = this.fb.group({
+      duration: [null, [Validators.min(0)]]
+    });
+
     // Formulário de filtro pré-demodulação
     this.preFilterForm = this.fb.group({
       filterLow: [0, [Validators.min(0)]],
@@ -72,12 +78,8 @@ export class ReceiverComponent implements OnInit, OnDestroy {
       mode: [Modulations.AM_DSB, Validators.required],
       fc: [1000, [Validators.required, Validators.min(0)]],
       fs: [5000, [Validators.required, Validators.min(1)]],
-      demodConst: [0.5, [Validators.required, Validators.min(0)]],
-      duration: [null, [Validators.min(0)]]
+      demodConst: [0.5, [Validators.required, Validators.min(0)]]
     });
-
-    // Atualiza demodulação ao alterar parâmetros
-    this.demodForm.valueChanges.subscribe(() => this.updateDemodulation());
 
     // Obtém o ID do transmissor ou canal da query string (?tx=ID ou ?channel=ID)
     this.routeSub = this.route.queryParams.subscribe((params) => {
@@ -170,7 +172,7 @@ export class ReceiverComponent implements OnInit, OnDestroy {
   }
 
   get duration(): number | null {
-    const val = this.demodForm?.get('duration')?.value;
+    const val = this.durationForm?.get('duration')?.value;
     return val === null || val === '' ? null : Number(val);
   }
 
@@ -258,6 +260,10 @@ export class ReceiverComponent implements OnInit, OnDestroy {
     this.processSignalWithDuration();
   }
 
+  applyDemodulation(): void {
+    this.updateDemodulation();
+  }
+
   inferSamplingRate(): void {
     if (!this.originalSignalData || this.originalSignalData.x.length < 2) return;
 
@@ -269,7 +275,7 @@ export class ReceiverComponent implements OnInit, OnDestroy {
       const inferredFs = Math.round(1 / dt);
       
       // Atualiza o formulário com a taxa de amostragem inferida
-      this.demodForm.patchValue({ fs: inferredFs }, { emitEvent: false });
+      this.demodForm.patchValue({ fs: inferredFs });
     }
   }
 

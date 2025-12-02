@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import QRCode from 'qrcode';
 
 import { SignalChartComponent } from '../../../components/signal-chart/signal-chart.component';
@@ -19,7 +19,7 @@ import { TransmitterConfig } from '../../../shared/interfaces/transmitter-config
 
 @Component({
   selector: 'app-channel',
-  imports: [CommonModule, ReactiveFormsModule, SignalChartComponent, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, SignalChartComponent],
   templateUrl: './channel.component.html',
   styleUrl: './channel.component.scss'
 })
@@ -114,9 +114,12 @@ export class ChannelComponent implements OnInit {
   private async generateQRCode(): Promise<void> {
     try {
       this.qrCodeDataUrl = await QRCode.toDataURL(this.channelUrl, {
-        width: 200,
+        width: 256,
         margin: 2,
-        color: { dark: '#00C9A7', light: '#111827' }
+        color: {
+          dark: '#111827',
+          light: '#ffffff'
+        },
       });
     } catch (err) {
       console.error('Erro ao gerar QR Code:', err);

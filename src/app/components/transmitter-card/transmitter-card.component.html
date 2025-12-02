@@ -12,8 +12,16 @@
 			<small>{{ transmitter.config.duration }} ms</small>
 		</div>
 		<div>
+			<b>Modulação:</b>
+			<small>{{ transmitter.config.modulation.modulationMode }}</small>
+		</div>
+		<div>
 			<b>Portadora:</b>
 			<small>{{ transmitter.config.modulation.carrierFrequency | frequency }}</small>
+		</div>
+		<div>
+			<b>Índice:</b>
+			<small>{{ transmitter.config.modulation.modulationIndex }}</small>
 		</div>
 	</div>  
 </div>

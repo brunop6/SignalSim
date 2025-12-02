@@ -87,26 +87,28 @@
     <!-- Configuração do Canal -->
     <section class="section">
       <h2>Configuração do Canal</h2>
-      <div class="form-row">
-        <label>
-          Duração (s)
-          <input 
-            type="number" 
-            formControlName="duration"
-            step="0.001"
-            (change)="generateMultiplexedSignal()"
-          />
-        </label>
-        <label>
-          Taxa de Amostragem (Hz)
-          <input 
-            type="number" 
-            formControlName="samplingFrequency"
-            [readonly]="true"
-            title="Ajustada automaticamente baseado nos sinais selecionados"
-          />
-        </label>
-      </div>
+      <form (ngSubmit)="generateMultiplexedSignal()">
+        <div class="form-row">
+          <label>
+            Duração (s)
+            <input 
+              type="number" 
+              formControlName="duration"
+              step="0.001"
+            />
+          </label>
+          <label>
+            Taxa de Amostragem (Hz)
+            <input 
+              type="number" 
+              formControlName="samplingFrequency"
+              [readonly]="true"
+              title="Ajustada automaticamente baseado nos sinais selecionados"
+            />
+          </label>
+          <button type="submit" class="apply-btn">Aplicar</button>
+        </div>
+      </form>
     </section>
 
     <!-- Sinal Multiplexado -->
@@ -126,17 +128,19 @@
     @if (spectrum) {
       <section class="section">
         <h2>Espectro de Frequência</h2>
-        <div class="form-row">
-          <label>
-            Frequência Máxima (Hz)
-            <input 
-              type="number" 
-              formControlName="spectrumMax"
-              placeholder="fs/2"
-              (change)="updateSpectrum()"
-            />
-          </label>
-        </div>
+        <form (ngSubmit)="updateSpectrum()">
+          <div class="form-row">
+            <label>
+              Frequência Máxima (Hz)
+              <input 
+                type="number" 
+                formControlName="spectrumMax"
+                placeholder="fs/2"
+              />
+            </label>
+            <button type="submit" class="apply-btn">Aplicar</button>
+          </div>
+        </form>
         <app-signal-chart 
           [data]="spectrum"
           title="Espectro"
@@ -162,41 +166,40 @@
       </div>
 
       @if (filterEnabled) {
-        <div class="form-row">
-          <label>
-            Frequência de Corte Inferior (Hz)
-            <input 
-              type="number" 
-              formControlName="filterLow"
-              (change)="updateFilterResponse(); applyFilter(); updateSpectrum()"
-            />
-          </label>
-          <label>
-            Frequência de Corte Superior (Hz)
-            <input 
-              type="number" 
-              formControlName="filterHigh"
-              (change)="updateFilterResponse(); applyFilter(); updateSpectrum()"
-            />
-          </label>
-          <label>
-            Ordem do Filtro
-            <input 
-              type="number" 
-              formControlName="filterOrder"
-              (change)="updateFilterResponse(); applyFilter(); updateSpectrum()"
-            />
-          </label>
-          <label>
-            Frequência Máxima (Hz)
-            <input 
-              type="number" 
-              formControlName="freqRespMax"
-              placeholder="fs/2"
-              (change)="updateFilterResponse()"
-            />
-          </label>
-        </div>
+        <form (ngSubmit)="updateFilterResponse(); applyFilter(); updateSpectrum()">
+          <div class="form-row">
+            <label>
+              Frequência de Corte Inferior (Hz)
+              <input 
+                type="number" 
+                formControlName="filterLow"
+              />
+            </label>
+            <label>
+              Frequência de Corte Superior (Hz)
+              <input 
+                type="number" 
+                formControlName="filterHigh"
+              />
+            </label>
+            <label>
+              Ordem do Filtro
+              <input 
+                type="number" 
+                formControlName="filterOrder"
+              />
+            </label>
+            <label>
+              Frequência Máxima (Hz)
+              <input 
+                type="number" 
+                formControlName="freqRespMax"
+                placeholder="fs/2"
+              />
+            </label>
+            <button type="submit" class="apply-btn">Aplicar Filtro</button>
+          </div>
+        </form>
 
         @if (freqResponse) {
           <app-signal-chart 
