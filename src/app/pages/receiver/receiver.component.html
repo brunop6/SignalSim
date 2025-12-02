@@ -13,7 +13,17 @@
   </div>
 
   <div *ngIf="!loading && !error && signalData" class="signal-section">
-    <h2>Sinal Recebido</h2>
+    <!-- Configuração de Duração -->
+    <form [formGroup]="demodForm" class="duration-form">
+      <div class="form-row">
+        <label>
+          Duração (s):
+          <input type="number" formControlName="duration" step="0.001" [placeholder]="'Máx: ' + (maxDuration | number:'1.3-3')" />
+        </label>
+        <button type="button" (click)="applyDuration()" class="apply-btn">Aplicar Duração</button>
+      </div>
+    </form>
+
     <div class="chart-wrap">
       <app-signal-chart
         [data]="signalData"
@@ -21,6 +31,74 @@
         [type]="'signal'">
       </app-signal-chart>
     </div>
+
+    <!-- Filtro Pré-Demodulação -->
+    <details class="nb-section">
+      <summary class="nb-heading" (click)="preFilterOnOff()">
+        <b>
+          Filtro Pré-Demodulação:
+          <span [class.status-on]="preFilterEnabled" [class.status-off]="!preFilterEnabled">
+            {{ preFilterEnabled ? 'Ativado' : 'Desligado' }}
+          </span>
+        </b>
+      </summary>
+      <form [formGroup]="preFilterForm" class="form-grid nb-form">
+        <div class="signal-row">
+          <label>
+            f Low (Hz)
+            <input type="number" step="10" formControlName="filterLow" />
+          </label>
+          <label>
+            f High (Hz)
+            <input type="number" step="10" formControlName="filterHigh" />
+          </label>
+          <label>
+            Ordem FIR (ímpar)
+            <input type="number" step="10" formControlName="filterOrder" />
+          </label>
+        </div>
+        <button type="button" (click)="applyPreFilter()" class="apply-btn">Aplicar</button>
+      </form>
+
+      <span *ngIf="preFilterEnabled && preFilterNyquistViolated" class="warn-text">
+        Atenção: fHigh ({{ preFilterHigh | number:'1.0-2' }}) ≥ fs/2 ({{ (fs/2) | number:'1.0-2' }}) — ajuste a banda do filtro.
+      </span>
+
+      <!-- Gráfico de Resposta em Frequência do Filtro Pré-Demodulação -->
+      <details open class="nb-section" *ngIf="preFilterEnabled">
+        <summary class="nb-heading"><b>Resposta em Frequência do Filtro</b></summary>
+        <form [formGroup]="preFilterForm" class="form-grid nb-form">
+          <label>
+            Frequência máxima (Hz)
+            <input type="number" step="any" formControlName="freqRespMax" />
+          </label>
+          <div class="info-block">
+            <span *ngIf="preFreqRespMaxExceeded" class="warn-text">
+              Atenção: frequência solicitada > fs/2 ({{ (fs/2) | number:'1.0-2' }}). Limitando em fs/2.
+            </span>
+          </div>
+        </form>
+        <div class="chart-wrap" *ngIf="preFreqResponse">
+          <app-signal-chart 
+            [data]="preFreqResponse" 
+            [type]="'frequency-response'" 
+            [xMax]="preClampedFreqRespMax"
+            title="Resposta em Frequência do Filtro (|H(f)|)">
+          </app-signal-chart>
+        </div>
+      </details>
+
+      <!-- Gráfico do Sinal Filtrado (Pré-Demodulação) -->
+      <details open class="nb-section" *ngIf="preFilterEnabled">
+        <summary class="nb-heading"><b>Sinal Recebido Filtrado</b></summary>
+        <div class="chart-wrap" *ngIf="preFiltered">
+          <app-signal-chart 
+            [data]="preFiltered" 
+            title="Sinal Filtrado (Passa-Faixa)">
+          </app-signal-chart>
+        </div>
+      </details>
+    </details>
 
     <!-- Demodulação -->
     <form [formGroup]="demodForm" class="demod-form">
@@ -53,11 +131,11 @@
       </app-signal-chart>
     </div>
 
-    <!-- Filtro -->
+    <!-- Filtro Pós-Demodulação -->
     <details class="nb-section">
       <summary class="nb-heading" (click)="filterOnOff()">
         <b>
-          Filtro:
+          Filtro Pós-Demodulação:
           <span [class.status-on]="filterEnabled" [class.status-off]="!filterEnabled">
             {{ filterEnabled ? 'Ativado' : 'Desligado' }}
           </span>
@@ -78,6 +156,7 @@
             <input type="number" step="10" formControlName="filterOrder" />
           </label>
         </div>
+        <button type="button" (click)="applyFilter()" class="apply-btn">Aplicar</button>
       </form>
 
       <span *ngIf="filterEnabled && filterNyquistViolated" class="warn-text">

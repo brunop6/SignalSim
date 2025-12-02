@@ -31,7 +31,7 @@ export class ChannelComponent implements OnInit {
   showQrCode = false;
 
   availableTransmitters: Array<TransmitterConfig & { id: string }> = [];
-  selectedTransmitters: Array<{ id: string; selected: boolean; signal?: SignalOutput }> = [];
+  selectedTransmitters: Array<{ id: string; selected: boolean; signal?: SignalOutput; config?: TransmitterConfig }> = [];
   validationInfos: SignalValidationInfo[] = [];
   validationMessage = '';
   canMultiplex = false;
@@ -75,7 +75,8 @@ export class ChannelComponent implements OnInit {
       // Inicializa lista de seleção
       this.selectedTransmitters = this.availableTransmitters.map(tx => ({
         id: tx.id,
-        selected: false
+        selected: false,
+        config: tx
       }));
 
       // Se houver um ID de canal, carrega a configuração

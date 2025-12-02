@@ -140,6 +140,12 @@
   margin-bottom: 1rem;
 }
 
+.transmitter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;
@@ -159,6 +165,48 @@
   input[type="checkbox"] {
     width: auto;
     margin: 0;
+  }
+}
+
+.transmitter-details {
+  margin-left: 2rem;
+  padding: 1rem;
+  background: rgba(0, 201, 167, 0.05);
+  border-left: 3px solid var(--primary-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+
+  h4 {
+    color: var(--primary-color);
+    margin: 0.75rem 0 0.5rem 0;
+    font-size: 0.95rem;
+    
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  .signal-info {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0, 201, 167, 0.1);
+
+    &:last-of-type {
+      border-bottom: none;
+    }
+
+    strong {
+      color: var(--secondary-color);
+    }
+  }
+
+  .modulation-info, .params-info {
+    line-height: 1.8;
+
+    strong {
+      color: var(--secondary-color);
+      min-width: 80px;
+      display: inline-block;
+    }
   }
 }
 

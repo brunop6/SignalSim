@@ -30,14 +30,50 @@
       <h2>Selecionar Transmissores</h2>
       <div class="transmitter-selection">
         @for (tx of selectedTransmitters; track tx.id) {
-          <label class="checkbox-label">
-            <input 
-              type="checkbox" 
-              [checked]="tx.selected"
-              (change)="toggleTransmitter(tx.id)"
-            />
-            {{ getTransmitterName(tx.id) }}
-          </label>
+          <div class="transmitter-item">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [checked]="tx.selected"
+                (change)="toggleTransmitter(tx.id)"
+              />
+              {{ getTransmitterName(tx.id) }}
+            </label>
+            
+            @if (tx.selected && tx.config) {
+              <div class="transmitter-details">
+                <h4>Configurações do Sinal</h4>
+                @for (signal of tx.config.config.signals; track $index) {
+                  <div class="signal-info">
+                    <strong>Sinal {{ $index + 1 }}:</strong>
+                    {{ signal.type }} - 
+                    A: {{ signal.amplitude }} - 
+                    f: {{ signal.frequency }} Hz - 
+                    φ: {{ signal.phase }}°
+                    @if (signal.offset) {
+                      - DC: {{ signal.offset }}
+                    }
+                  </div>
+                }
+                
+                <h4>Modulação</h4>
+                <div class="modulation-info">
+                  <strong>Tipo:</strong> {{ tx.config.config.modulation.modulationMode }}<br>
+                  <strong>fc:</strong> {{ tx.config.config.modulation.carrierFrequency }} Hz<br>
+                  @if (tx.config.config.modulation.carrierAmplitude) {
+                    <strong>Ac:</strong> {{ tx.config.config.modulation.carrierAmplitude }}<br>
+                  }
+                  <strong>Índice:</strong> {{ tx.config.config.modulation.modulationIndex }}
+                </div>
+                
+                <h4>Parâmetros</h4>
+                <div class="params-info">
+                  <strong>Duração:</strong> {{ tx.config.config.duration }} ms<br>
+                  <strong>fs:</strong> {{ tx.config.config.samplingFrequency }} Hz
+                </div>
+              </div>
+            }
+          </div>
         }
       </div>
       
